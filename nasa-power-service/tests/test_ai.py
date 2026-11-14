@@ -169,12 +169,13 @@ def test_ai_chat_stream_endpoint(client: TestClient) -> None:
 
 def test_simulation_endpoint_baseline(client: TestClient) -> None:
     req_payload = {
-        "location": {"name": "Meknes, Morocco", "latitude": 33.89, "longitude": -5.55},
+        "location": {"name": "Meknes, Morocco", "latitude": 33.8938, "longitude": -5.5516},
         "year": 2025,
         "soil_type": "limoneux_profond",
         "water_access": "appoint",
         "budget": "moyen",
         "climate_shock": "none",
+        "historical_compare_year": 2023,
     }
     res = client.post("/api/ai/simulate", json=req_payload)
     assert res.status_code == 200
@@ -184,6 +185,64 @@ def test_simulation_endpoint_baseline(client: TestClient) -> None:
     assert len(data["tribunal_verdicts"]) == 4
     assert "الخطة" in data["overall_synthesis_darija"]
     assert len(data["radar_dimensions"]) == 5
+
+    # Rigorous scientific data consistency checks (Explicit Contiguous Harvest Year 2025)
+    metrics = data["baseline_metrics"]
+    assert metrics["annual_precipitation_mm"] == 701.2
+    assert metrics["recorded_hot_days"] == 156
+    assert metrics["recorded_dry_days"] == 282
+    assert metrics["rootzone_moisture_m3m3"] == 0.266
+    assert metrics["harvest_year"] == 2025
+    assert metrics["season_start_date"] == "2024-11-15"
+    assert metrics["season_end_date"] == "2025-05-20"
+    assert metrics["season_total_days"] == 187
+    assert metrics["data_source_years"] == [2024, 2025]
+    assert metrics["crop_cycle_rain_gross_mm"] == 339.0
+    assert metrics["effective_seasonal_rain_infiltrated_mm"] == 334.1
+    assert metrics["total_water_budget_mm"] == 475.3
+    assert metrics["soil_available_water_capacity_mm"] == 150.0
+    assert metrics["readily_available_soil_water_mm"] == 0.0
+    # Verify winner and evaporative demand reduction
+    p1 = data["plans"][0]
+    winner = next(p for p in data["plans"] if p["id"] == data["winner_plan_id"])
+    expected_evap_saved = round(p1["water_need_mm"] - winner["water_need_mm"], 1)
+    expected_deficit_saved = round(p1["water_deficit_mm"] - winner["water_deficit_mm"], 1)
+    assert metrics["evaporative_demand_reduction_mm"] == expected_evap_saved
+    assert metrics["simulated_water_deficit_reduction_mm"] == expected_deficit_saved
+
+    # Verify contiguous chronological dates in rotation years
+    p1 = data["plans"][0]
+    assert p1["rotation_years"][0]["season_start_date"] == "2024-11-15"
+    assert p1["rotation_years"][0]["season_end_date"] == "2025-05-20"
+    assert p1["rotation_years"][0]["cycle_days"] == 187
+
+    p2 = data["plans"][1]
+    assert p2["rotation_years"][1]["season_start_date"] == "2024-12-01"
+    assert p2["rotation_years"][1]["season_end_date"] == "2025-04-30"
+    assert p2["rotation_years"][1]["cycle_days"] == 151
+    assert p2["rotation_years"][2]["season_start_date"] == "2024-11-15"
+    assert p2["rotation_years"][2]["season_end_date"] == "2025-04-25"
+    assert p2["rotation_years"][2]["cycle_days"] == 162
+
+    # Verify physical water balance equation (Infiltration + Irrigation + Sowing Stored Water)
+    expected_supply = round(
+        metrics["effective_seasonal_rain_infiltrated_mm"]
+        + metrics["supplementary_irrigation_available_mm"]
+        + metrics["stored_rootzone_water_at_sowing_mm"],
+        1,
+    )
+    assert metrics["total_water_budget_mm"] == expected_supply
+    assert metrics["fao56_daily_water_balance"]["mass_balance_error_mm"] == 0.0
+
+    # Verify tribunal evidence references the real dataset
+    tribunal = data["tribunal_verdicts"]
+    climate_verdict = next(v for v in tribunal if "Climat" in v["agent_name"])
+    assert "339.0" in climate_verdict["key_evidence"]
+    assert "156" in climate_verdict["key_evidence"]
+
+    smap_verdict = next(v for v in tribunal if "SMAP" in v["agent_name"])
+    assert "0.266" in smap_verdict["key_evidence"]
+    assert "150.0" in smap_verdict["key_evidence"]
 
 
 def test_simulation_endpoint_climate_shock(client: TestClient) -> None:

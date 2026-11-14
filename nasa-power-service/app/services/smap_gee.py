@@ -126,15 +126,27 @@ class SmapGeeService:
 
         async with self._lock:
             if not request.refresh:
-                cached_data = self._cache.read_json(self._cache.smap_gee_path(cache_key))
+                cached_path = self._cache.smap_gee_path(cache_key)
+                if not cached_path.is_file():
+                    spatial_path = self._cache.find_matching_smap_gee(
+                        latitude=location.requested_latitude,
+                        longitude=location.requested_longitude,
+                        start_date=request.start_date,
+                        end_date=request.end_date,
+                        mode=mode_clean,
+                    )
+                    if spatial_path is not None and spatial_path.is_file():
+                        cached_path = spatial_path
+
+                cached_data = self._cache.read_json(cached_path)
                 if cached_data is not None:
                     try:
                         cached_resp = SmapGeeResponse.model_validate(cached_data)
-                        logger.info("SMAP GEE cache hit for %s", cache_key)
+                        logger.info("SMAP GEE cache hit for %s", cached_path.name)
                         # Return cached response with updated cached=True flag
                         return cached_resp.model_copy(update={"cached": True})
                     except Exception:
-                        logger.warning("Unusable SMAP GEE cache %s; refetching", cache_key)
+                        logger.warning("Unusable SMAP GEE cache %s; refetching", cached_path.name)
 
             # Perform live Earth Engine extraction
             start_time = time.monotonic()

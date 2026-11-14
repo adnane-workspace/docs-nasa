@@ -5,6 +5,8 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import math
+import re
 from datetime import date
 from pathlib import Path
 
@@ -95,6 +97,84 @@ class FileCache:
         identity = f"{latitude:.4f}|{longitude:.4f}|{start_date.isoformat()}|{end_date.isoformat()}|{mode}|{scale}"
         digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:16]
         return f"smap_gee_{latitude:.4f}_{longitude:.4f}_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}_{mode}_{digest}"
+
+    def find_matching_raw(
+        self,
+        *,
+        latitude: float,
+        longitude: float,
+        start_date: date,
+        end_date: date,
+    ) -> Path | None:
+        """Find an existing NASA POWER raw file on the native MERRA-2 / GEOS grid (0.5° lat × 0.625° lon)."""
+        start_str = start_date.strftime("%Y%m%d")
+        end_str = end_date.strftime("%Y%m%d")
+        best_path: Path | None = None
+        best_dist = float("inf")
+        best_dlat = 0.0
+        best_dlon = 0.0
+
+        # Native NASA POWER grid cell half-dimensions
+        max_dlat = 0.25
+        max_dlon = 0.3125
+
+        pattern = re.compile(r"^([+-]?\d+\.\d+)_([+-]?\d+\.\d+)_(\d{8})_(\d{8})_[0-9a-f]+\.json$")
+        for file_path in self.raw_dir.glob("*.json"):
+            if file_path.name.endswith(".meta.json"):
+                continue
+            m = pattern.match(file_path.name)
+            if not m:
+                continue
+            f_lat, f_lon, f_start, f_end = float(m.group(1)), float(m.group(2)), m.group(3), m.group(4)
+            if f_start == start_str and f_end == end_str:
+                dlat = abs(latitude - f_lat)
+                dlon = abs(longitude - f_lon)
+                if dlat <= max_dlat and dlon <= max_dlon:
+                    dist = math.hypot(dlat, dlon)
+                    if dist < best_dist:
+                        best_dist = dist
+                        best_dlat = dlat
+                        best_dlon = dlon
+                        best_path = file_path
+        if best_path:
+            logger.info("Found native-grid matching NASA POWER cache: %s (cell delta: lat=%.4f°, lon=%.4f°)", best_path.name, best_dlat, best_dlon)
+        return best_path
+
+    def find_matching_smap_gee(
+        self,
+        *,
+        latitude: float,
+        longitude: float,
+        start_date: date,
+        end_date: date,
+        mode: str,
+    ) -> Path | None:
+        """Find an existing NASA SMAP GEE cache file on the native EASE-Grid 2.0 (~9 km pixel, half-radius <= 4.5 km)."""
+        start_str = start_date.strftime("%Y%m%d")
+        end_str = end_date.strftime("%Y%m%d")
+        best_path: Path | None = None
+        best_dist_km = float("inf")
+
+        # EASE-Grid 2.0 Global 9 km (M09): Maximum distance to cell center is half the diagonal (~6.4 km) or nominal half-width (4.5 km)
+        max_pixel_radius_km = 5.0
+
+        pattern = re.compile(r"^smap_gee_([+-]?\d+\.\d+)_([+-]?\d+\.\d+)_(\d{8})_(\d{8})_([a-z]+)_[0-9a-f]+\.json$")
+        for file_path in self.smap_gee_dir.glob("smap_gee_*.json"):
+            m = pattern.match(file_path.name)
+            if not m:
+                continue
+            f_lat, f_lon, f_start, f_end, f_mode = float(m.group(1)), float(m.group(2)), m.group(3), m.group(4), m.group(5)
+            if f_start == start_str and f_end == end_str and f_mode == mode:
+                # Approximate geodesic distance on WGS84
+                dlat_km = (latitude - f_lat) * 110.9
+                dlon_km = (longitude - f_lon) * 111.3 * math.cos(math.radians((latitude + f_lat) / 2.0))
+                dist_km = math.hypot(dlat_km, dlon_km)
+                if dist_km <= max_pixel_radius_km and dist_km < best_dist_km:
+                    best_dist_km = dist_km
+                    best_path = file_path
+        if best_path:
+            logger.info("Found native EASE-Grid 2.0 matching SMAP cache: %s (distance=%.2f km within 9-km pixel)", best_path.name, best_dist_km)
+        return best_path
 
     def read_json(self, path: Path) -> dict | None:
         if not path.is_file():

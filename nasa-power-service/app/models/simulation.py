@@ -28,6 +28,7 @@ class SimulationPlan(BaseModel):
     summary_darija: str
     pros: list[str]
     cons: list[str]
+    rotation_years: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class TribunalAgentVerdict(BaseModel):
@@ -79,3 +80,4 @@ class SimulationResponse(BaseModel):
     overall_synthesis_darija: str
     radar_dimensions: list[str]
     sources_used: list[str]
+    validation_metadata: dict[str, Any] = Field(default_factory=dict)

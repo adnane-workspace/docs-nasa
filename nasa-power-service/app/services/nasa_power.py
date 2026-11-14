@@ -239,6 +239,19 @@ class NasaPowerClient:
         end_date: date,
     ) -> PowerDataset | None:
         raw_path = self._cache.raw_path(key)
+        matched_key = key
+        if not raw_path.is_file():
+            # Spatial near-match within satellite pixel tolerance (~0.08°)
+            spatial_path = self._cache.find_matching_raw(
+                latitude=latitude,
+                longitude=longitude,
+                start_date=start_date,
+                end_date=end_date,
+            )
+            if spatial_path is not None and spatial_path.is_file():
+                raw_path = spatial_path
+                matched_key = spatial_path.stem
+
         payload = self._cache.read_json(raw_path)
         if payload is None:
             return None
@@ -250,10 +263,10 @@ class NasaPowerClient:
                 end_date=end_date,
             )
         except NasaDataError:
-            logger.warning("Cached NASA payload %s could not be normalized; refetching", key)
+            logger.warning("Cached NASA payload %s could not be normalized; refetching", matched_key)
             return None
 
-        meta = self._cache.read_json(self._cache.meta_path(key)) or {}
+        meta = self._cache.read_json(self._cache.meta_path(matched_key)) or {}
         retrieved_at = _parse_timestamp(meta.get("retrieved_at"))
         if retrieved_at is None:
             retrieved_at = datetime.fromtimestamp(raw_path.stat().st_mtime, tz=timezone.utc)

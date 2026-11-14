@@ -2003,36 +2003,40 @@ function renderFarmTimeMachine(data) {
   if (!container) return;
 
   const b = data.baseline_metrics || {};
-  const winner = data.plans.find(p => p.id === data.winner_plan_id) || data.plans[1];
+  const winner = data.plans.find(p => p.id === data.winner_plan_id) || data.plans[1] || data.plans[0];
   const p1 = data.plans[0];
 
-  const waterSaved = Math.max(0, Math.round((p1.water_need_mm || 440) - (winner.water_need_mm || 345)));
-  const stressDiff = Math.max(0, Math.round((p1.water_stress_risk_pct || 60) - (winner.water_stress_risk_pct || 25)));
+  const waterSaved = Math.max(0, Math.round((p1.water_need_mm || 440) - (winner.water_need_mm || 350)));
+  const deficitSaved = Math.max(0, Math.round((p1.water_deficit_mm || 0) - (winner.water_deficit_mm || 0)));
+  const irrSaved = Math.max(0, Math.round(b.irrigation_pumping_savings_mm || 0));
+  const stressDiff = Math.max(0, Math.round((p1.water_stress_risk_pct || 50) - (winner.water_stress_risk_pct || 10)));
+  const precipVal = b.annual_precipitation_mm !== undefined ? b.annual_precipitation_mm : (b.precip_annual_mm || 0);
+  const smVal = b.rootzone_moisture_m3m3 !== undefined ? b.rootzone_moisture_m3m3 : (b.sm_rootzone_mean || 0);
 
   container.innerHTML = `
     <div class="tm-metrics-grid">
       <div class="tm-metric-card">
         <span class="tm-metric-label">التساقطات المسجلة تاريخياً (NASA POWER)</span>
-        <span class="tm-metric-val">${b.precip_annual_mm || 320} مم</span>
+        <span class="tm-metric-val">${precipVal} مم</span>
         <span class="tm-metric-diff diff-positive">بيانات حقيقية مرصودة</span>
       </div>
 
       <div class="tm-metric-card">
         <span class="tm-metric-label">رطوبة منطقة الجذور SMAP L4</span>
-        <span class="tm-metric-val">${b.sm_rootzone_mean || 0.24} م³/م³</span>
+        <span class="tm-metric-val">${smVal} م³/م³</span>
         <span class="tm-metric-diff diff-positive">عمق 0-100 سم</span>
       </div>
 
       <div class="tm-metric-card">
-        <span class="tm-metric-label">توفير مياه الري عند تطبيق الخطة 2</span>
-        <span class="tm-metric-val">+${waterSaved} مم</span>
-        <span class="tm-metric-diff diff-positive">+${waterSaved * 10} م³/هكتار</span>
+        <span class="tm-metric-label">تقليص الطلب التبخري (${winner.name_ar.split(':')[0]})</span>
+        <span class="tm-metric-val">-${waterSaved} مم</span>
+        <span class="tm-metric-diff diff-positive">توفير -${waterSaved * 10} م³/هكتار (طلب تبخري ETc)</span>
       </div>
 
       <div class="tm-metric-card">
-        <span class="tm-metric-label">تخفيض خطر الإجهاد المائي والجفاف</span>
+        <span class="tm-metric-label">تخفيض مؤشر الإجهاد المائي المحاكى</span>
         <span class="tm-metric-val">-${stressDiff}%</span>
-        <span class="tm-metric-diff diff-positive">حماية من الخسارة المالية</span>
+        <span class="tm-metric-diff diff-positive">تقليص العجز: -${deficitSaved * 10} م³/هك</span>
       </div>
     </div>
 
@@ -2041,10 +2045,11 @@ function renderFarmTimeMachine(data) {
         💡 التحليل العكسي لآلة الزمن (Simulation Rétrospective)
       </h4>
       <p style="color:#334155;line-height:1.7;font-size:0.9rem;margin:0">
-        لو كنتي فالسنة المرجعية (${data.year}) طبقتي <strong>الخطة 2 (الدورة الثلاثية قمح-عدس-شعير)</strong> فبقعتك، 
-        كنتي غادي توفر حوالي <strong>${waterSaved * 10} متر مكعب ديال الماء فكل هكتار</strong>، والقطاني كانت غادي تثبت ليك 
-        أكثر من <strong>40 كلغ ديال الآزوت الطبيعي</strong> فالتراب مجاناً، وما كنتيش غادي تعاني من الخسائر الكبيرة لي وقعات 
-        بسباب جفاف شهري مارس وأبريل.
+        لو كنتي فموسم حصاد (${data.year}) طبقتي <strong>${winner.name_ar}</strong> فبقعتك، 
+        كنتي غادي تخفف الطلب التبخري الجوي بحوالي <strong>${waterSaved * 10} متر مكعب فكل هكتار</strong>، 
+        وتقلص العجز المائي الصافي بمقدار <strong>${deficitSaved * 10} م³/هكتار</strong>، 
+        مع توفير ضخ السقي الفعلي بمقدار <strong>${irrSaved * 10} م³/هكتار</strong> (أو 0 مم فالبور لغياب السقي أصلاً)، 
+        بالإضافة لتثبيت حيوي للأزوت بفضل المحاصيل المتناوبة وتفادي انهيار الإنتاج الحاد الناتج عن زراعة القمح الأحادي المتواصل.
       </p>
     </div>
   `;
