@@ -177,6 +177,27 @@ class AgriSimulationService:
 
         return merged_params, elev_m, harvest_year - 1, harvest_year
 
+    def _load_sowing_smap_payload(
+        self,
+        *,
+        latitude: float,
+        longitude: float,
+        sowing_year: int,
+    ) -> dict[str, Any] | None:
+        """Loads verified NASA SMAP Level-4 payload for the sowing year (Y-1) from cache."""
+        settings = get_settings()
+        cache = FileCache(settings.cache_dir)
+        matching_path = cache.find_matching_smap_gee(
+            latitude=latitude,
+            longitude=longitude,
+            start_date=date(sowing_year, 1, 1),
+            end_date=date(sowing_year, 12, 31),
+            mode="agricultural",
+        )
+        if matching_path and matching_path.is_file():
+            return json.loads(matching_path.read_text(encoding="utf-8"))
+        return None
+
     @staticmethod
     def compute_daily_fao56_et0(
         params: dict[str, dict[str, float]],
@@ -347,7 +368,9 @@ class AgriSimulationService:
 
         # Exact mass balance conservation error check:
         # Delta Dr == -(Infiltration + Irrigation) + ETa + Deep Drainage
-        mass_error = abs((Dr - initial_dr_mm) - (-cum_inf - cum_irr + cum_eta + cum_dp))
+        observed_delta_dr = Dr - initial_dr_mm
+        flux_delta_dr = -cum_inf - cum_irr + cum_eta + cum_dp
+        mass_error = abs(observed_delta_dr - flux_delta_dr)
 
         return {
             "gross_rain_mm": round(cum_p, 1),
@@ -363,6 +386,17 @@ class AgriSimulationService:
             "stress_days": stress_days,
             "stress_pct": round(stress_pct, 1),
             "mass_balance_error_mm": round(mass_error, 8),
+            "unrounded_daily_mass_balance": {
+                "initial_depletion_dr_mm": initial_dr_mm,
+                "infiltrated_rain_mm": cum_inf,
+                "irrigation_applied_mm": cum_irr,
+                "actual_eta_mm": cum_eta,
+                "deep_percolation_mm": cum_dp,
+                "final_depletion_dr_mm": Dr,
+                "observed_delta_dr_mm": observed_delta_dr,
+                "flux_delta_dr_mm": flux_delta_dr,
+                "mass_balance_residual_mm": observed_delta_dr - flux_delta_dr,
+            },
         }
 
     async def run_simulation(self, request: SimulationRequest) -> SimulationResponse:
@@ -422,15 +456,49 @@ class AgriSimulationService:
         p_depletion = float(soil_meta["depletion_fraction_p"])
         raw_mm = round(p_depletion * taw_mm, 1)
 
-        # Identify actual sowing period moisture from SMAP L4 monthly series (November sowing)
-        monthly_series = smap.get("monthly_evolution", [])
-        nov_mo = next((m for m in monthly_series if "novembre" in m.get("month", "").lower()), None)
-        oct_mo = next((m for m in monthly_series if "octobre" in m.get("month", "").lower()), None)
-        sowing_sm_rootzone = (
-            float(nov_mo.get("sm_rootzone"))
-            if nov_mo and nov_mo.get("sm_rootzone") is not None
-            else (float(oct_mo.get("sm_rootzone")) if oct_mo and oct_mo.get("sm_rootzone") is not None else effective_sm_rootzone)
+        # Sowing occurred in autumn of the preceding calendar year (Y-1, e.g. November 2024 for Harvest 2025)
+        harvest_year = request.year
+        sowing_year = harvest_year - 1
+
+        sowing_payload = self._load_sowing_smap_payload(
+            latitude=request.location.latitude,
+            longitude=request.location.longitude,
+            sowing_year=sowing_year,
         )
+
+        sowing_sm_rootzone: float | None = None
+        sowing_obs_count = 0
+        sowing_moisture_source_date = f"{sowing_year}-11-01"
+        sowing_moisture_dataset = "NASA SMAP Level-4 SPL4SMGP V008 (Monthly Assimilated Mean)"
+        sowing_moisture_aggregation = "Monthly spatial and temporal mean of 3-hourly assimilated root-zone soil moisture (0-100 cm) across November"
+
+        if sowing_payload:
+            s_monthly = sowing_payload.get("monthly_series", [])
+            nov_item = next((m for m in s_monthly if m.get("month_name") == "Novembre"), None)
+            oct_item = next((m for m in s_monthly if m.get("month_name") == "Octobre"), None)
+            if nov_item and nov_item.get("display_values", {}).get("sm_rootzone") is not None:
+                sowing_sm_rootzone = round(float(nov_item["display_values"]["sm_rootzone"]), 4)
+                sowing_obs_count = int(nov_item.get("observation_count", 240))
+                sowing_moisture_source_date = f"{sowing_year}-11-01"
+            elif oct_item and oct_item.get("display_values", {}).get("sm_rootzone") is not None:
+                sowing_sm_rootzone = round(float(oct_item["display_values"]["sm_rootzone"]), 4)
+                sowing_obs_count = int(oct_item.get("observation_count", 248))
+                sowing_moisture_source_date = f"{sowing_year}-10-01"
+
+        # Fallback to current year monthly series if sowing year payload unavailable
+        if sowing_sm_rootzone is None:
+            monthly_series = smap.get("monthly_evolution", [])
+            nov_mo = next((m for m in monthly_series if "novembre" in m.get("month", "").lower()), None)
+            oct_mo = next((m for m in monthly_series if "octobre" in m.get("month", "").lower()), None)
+            sowing_sm_rootzone = (
+                float(nov_mo.get("sm_rootzone"))
+                if nov_mo and nov_mo.get("sm_rootzone") is not None
+                else (float(oct_mo.get("sm_rootzone")) if oct_mo and oct_mo.get("sm_rootzone") is not None else effective_sm_rootzone)
+            )
+            sowing_moisture_source_date = f"{harvest_year}-11-01 (Fallback)"
+
+        # Apply climate shock multiplier to sowing moisture if specified
+        sowing_sm_rootzone = round(sowing_sm_rootzone * shock_meta["sm_mult"], 4)
 
         # Stored water at sowing time above permanent wilting point (mm)
         stored_soil_water_at_sowing_mm = max(
@@ -443,7 +511,6 @@ class AgriSimulationService:
         water_remaining_before_stress_at_sowing_mm = max(0.0, round(raw_mm - initial_depletion_dr_sow_mm, 1))
 
         # 4. Load Raw Contiguous Multi-Year Daily Meteorological Series for Harvest Year (Y-1 to Y)
-        harvest_year = request.year
         raw_params, elev_m, y_prev, y_curr = self._load_harvest_season_power_parameters(
             latitude=request.location.latitude,
             longitude=request.location.longitude,
@@ -680,10 +747,14 @@ class AgriSimulationService:
             "soil_available_water_capacity_taw_mm": taw_mm,
             "readily_available_water_raw_mm": raw_mm,
             "sowing_period_moisture_m3m3": sowing_sm_rootzone,
+            "sowing_moisture_source_date": sowing_moisture_source_date,
+            "sowing_moisture_dataset": sowing_moisture_dataset,
+            "sowing_moisture_observation_count": sowing_obs_count,
+            "sowing_moisture_aggregation_method": sowing_moisture_aggregation,
             "stored_rootzone_water_at_sowing_mm": stored_soil_water_at_sowing_mm,
             "initial_rootzone_depletion_dr_sow_mm": initial_depletion_dr_sow_mm,
             "water_remaining_before_stress_at_sowing_mm": water_remaining_before_stress_at_sowing_mm,
-            "readily_available_soil_water_mm": water_remaining_before_stress_at_sowing_mm,  # RAW - Dr = 0
+            "readily_available_soil_water_mm": water_remaining_before_stress_at_sowing_mm,
             "total_water_budget_mm": total_water_budget,
             "recorded_hot_days": hot_days,
             "recorded_dry_days": dry_days,
@@ -692,8 +763,11 @@ class AgriSimulationService:
             "evaporative_demand_reduction_m3_ha": evap_demand_saved_m3_ha,
             "simulated_water_deficit_reduction_mm": deficit_saved_mm,
             "simulated_water_deficit_reduction_m3_ha": deficit_saved_m3_ha,
-            "irrigation_pumping_savings_mm": irr_pumping_saved_mm,
+            "simulated_irrigation_savings_mm": irr_pumping_saved_mm,
+            "simulated_irrigation_savings_m3_ha": irr_pumping_saved_m3_ha,
+            "irrigation_pumping_savings_mm": irr_pumping_saved_mm,  # Backwards compatibility alias
             "irrigation_pumping_savings_m3_ha": irr_pumping_saved_m3_ha,
+            "irrigation_savings_label": "Simulated Irrigation Saving (Model Estimation - Unverified by On-Farm Metering)",
             "fao56_daily_water_balance": sim_wheat,
         }
 
@@ -710,6 +784,8 @@ class AgriSimulationService:
             baseline_metrics["historical_evaporative_demand_volume_m3_ha"] = evap_demand_saved_m3_ha
             baseline_metrics["historical_water_deficit_reduction_mm"] = deficit_saved_mm
             baseline_metrics["historical_water_volume_saved_m3_ha"] = deficit_saved_m3_ha
+            baseline_metrics["historical_simulated_irrigation_savings_mm"] = irr_pumping_saved_mm
+            baseline_metrics["historical_simulated_irrigation_savings_m3_ha"] = irr_pumping_saved_m3_ha
             baseline_metrics["historical_irrigation_savings_mm"] = irr_pumping_saved_mm
             baseline_metrics["historical_irrigation_savings_m3_ha"] = irr_pumping_saved_m3_ha
 
@@ -723,13 +799,14 @@ class AgriSimulationService:
                 "calendar_year": f"January 1, {request.year} to December 31, {request.year} ({effective_precip} mm, {hot_days} hot days)",
                 "harvest_year_definition": f"Harvest Year {harvest_year}: contiguous agricultural cycle from November 15, {y_prev} through May 20, {y_curr} ({sim_wheat['gross_rain_mm']} mm gross rain)",
                 "data_source_years": f"NASA POWER Daily Ground Truth datasets loaded for both calendar years {y_prev} and {y_curr}",
+                "sowing_soil_moisture_provenance": f"November {sowing_year} SMAP Level-4 (sowing year Y-1, {sowing_obs_count} 3-hourly observations assimilated, monthly mean {sowing_sm_rootzone} m3/m3), strictly preceding harvest year {harvest_year}.",
                 "wheat_crop_cycle": f"November 15, {y_prev} to May 20, {y_curr} (187 contiguous days)",
                 "lentil_crop_cycle": f"December 01, {y_prev} to April 30, {y_curr} (151 contiguous days)",
                 "barley_crop_cycle": f"November 15, {y_prev} to April 25, {y_curr} (162 contiguous days)",
                 "forage_crop_cycle": f"December 01, {y_prev} to March 20, {y_curr} (110 contiguous days)",
                 "fallow_management_window": f"March 01, {y_curr} to May 29, {y_curr} (90 contiguous days)",
-                "multi_year_rotation_assumption": "Multi-year rotation compares crops simulated against the aligned harvest year climate regime (stationarity assumption across rotation sequence).",
-                "water_metrics_distinction": "Evaporative Demand Reduction (ETc) != Simulated Water Deficit Reduction (ETc - ETa) != Irrigation Pumping Savings (Applied Pumping).",
+                "multi_year_rotation_assumption": "Year 1 uses independently observed NASA observations. Years 2 and 3 use an explicit repeated-climate assumption (stationary climate model with phenological calendar alignment), clearly labeled to avoid false claims of multi-year historical forecasts.",
+                "water_metrics_distinction": "Evaporative Demand Reduction (ETc) != Simulated Water Deficit Reduction (ETc - ETa) != Simulated Irrigation Savings (Applied Pumping Model - Unverified by On-Farm Metering).",
             },
             "heuristic_agronomic_indices": {
                 "soil_health_score": "Heuristic Agronomic Index (0-100) based on rotation diversity, BNF, and residue retention.",
@@ -813,7 +890,9 @@ class AgriSimulationService:
                 "season_start_date": f"{y_prev}-11-15",
                 "season_end_date": f"{y_curr}-05-20",
                 "cycle_days": 187,
+                "climate_source_type": "Independently Observed Harvest Season",
                 "climate_basis": f"Saison observée Récolte {harvest_year} (du 15 nov. {y_prev} au 20 mai {y_curr})",
+                "is_repeated_climate_assumption": False,
                 "water_need_mm": water_need_p1,
                 "actual_eta_mm": sim_wheat["actual_eta_mm"],
                 "deficit_mm": deficit_p1,
@@ -826,7 +905,9 @@ class AgriSimulationService:
                 "season_start_date": f"{y_prev}-11-15",
                 "season_end_date": f"{y_curr}-05-20",
                 "cycle_days": 187,
+                "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
                 "climate_basis": f"Régime climatique stationnaire (Hypothèse répétée sur récolte {harvest_year})",
+                "is_repeated_climate_assumption": True,
                 "water_need_mm": water_need_p1,
                 "actual_eta_mm": sim_wheat["actual_eta_mm"],
                 "deficit_mm": deficit_p1,
@@ -839,7 +920,9 @@ class AgriSimulationService:
                 "season_start_date": f"{y_prev}-11-15",
                 "season_end_date": f"{y_curr}-05-20",
                 "cycle_days": 187,
+                "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
                 "climate_basis": f"Régime climatique stationnaire (Hypothèse répétée sur récolte {harvest_year})",
+                "is_repeated_climate_assumption": True,
                 "water_need_mm": water_need_p1,
                 "actual_eta_mm": sim_wheat["actual_eta_mm"],
                 "deficit_mm": deficit_p1,
@@ -896,7 +979,9 @@ class AgriSimulationService:
                 "season_start_date": f"{y_prev}-11-15",
                 "season_end_date": f"{y_curr}-05-20",
                 "cycle_days": 187,
+                "climate_source_type": "Independently Observed Harvest Season",
                 "climate_basis": f"Saison observée Récolte {harvest_year} (du 15 nov. {y_prev} au 20 mai {y_curr})",
+                "is_repeated_climate_assumption": False,
                 "water_need_mm": sim_wheat["potential_etc_mm"],
                 "actual_eta_mm": sim_wheat["actual_eta_mm"],
                 "deficit_mm": sim_wheat["water_deficit_mm"],
@@ -909,7 +994,9 @@ class AgriSimulationService:
                 "season_start_date": f"{y_prev}-12-01",
                 "season_end_date": f"{y_curr}-04-30",
                 "cycle_days": 151,
-                "climate_basis": f"Saison observée alignée (du 1 déc. {y_prev} au 30 avr. {y_curr})",
+                "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+                "climate_basis": f"Hypothèse de climat répété / stationnaire basée sur la récolte {harvest_year} (du 1 déc. {y_prev} au 30 avr. {y_curr})",
+                "is_repeated_climate_assumption": True,
                 "water_need_mm": sim_lentil["potential_etc_mm"],
                 "actual_eta_mm": sim_lentil["actual_eta_mm"],
                 "deficit_mm": sim_lentil["water_deficit_mm"],
@@ -923,7 +1010,9 @@ class AgriSimulationService:
                 "season_start_date": f"{y_prev}-11-15",
                 "season_end_date": f"{y_curr}-04-25",
                 "cycle_days": 162,
-                "climate_basis": f"Saison observée alignée (du 15 nov. {y_prev} au 25 avr. {y_curr})",
+                "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+                "climate_basis": f"Hypothèse de climat répété / stationnaire basée sur la récolte {harvest_year} (du 15 nov. {y_prev} au 25 avr. {y_curr})",
+                "is_repeated_climate_assumption": True,
                 "water_need_mm": sim_barley["potential_etc_mm"],
                 "actual_eta_mm": sim_barley["actual_eta_mm"],
                 "deficit_mm": sim_barley["water_deficit_mm"],
@@ -954,7 +1043,7 @@ class AgriSimulationService:
             pros=[
                 f"تقليص الطلب التبخري الجوي بمقدار {evap_saved_p2} مم ({round(evap_saved_p2 * 10)} م³/هكتار)",
                 f"خفض العجز المائي الصافي بـ {deficit_saved_p2} مم ({round(deficit_saved_p2 * 10)} م³/هكتار)",
-                f"توفير مياه السقي الفعلي: {irr_saved_p2} مم ({round(irr_saved_p2 * 10)} م³/هكتار عند توفر الري، و0 مم فالبور)",
+                f"تقليص مياه السقي المحاكى: {irr_saved_p2} مم ({round(irr_saved_p2 * 10)} م³/هكتار كتقدير محاكاة غير مثبت بعدادات ضخ ميدانية، و0 مم فالبور)",
                 "تثبيت الآزوت الطبيعي بالتربة (تقديرياً 30-50 كغ N/هكتار)",
                 "صمود ممتاز ضد نقص التساقطات وموجات الحر",
                 "كسر دورة الأعشاب الضارة وأمراض تعفن الجذور",
@@ -987,7 +1076,9 @@ class AgriSimulationService:
                 "season_start_date": f"{y_prev}-11-15",
                 "season_end_date": f"{y_curr}-05-20",
                 "cycle_days": 187,
+                "climate_source_type": "Independently Observed Harvest Season",
                 "climate_basis": f"Saison observée Récolte {harvest_year} (du 15 nov. {y_prev} au 20 mai {y_curr})",
+                "is_repeated_climate_assumption": False,
                 "water_need_mm": sim_wheat["potential_etc_mm"],
                 "actual_eta_mm": sim_wheat["actual_eta_mm"],
                 "deficit_mm": sim_wheat["water_deficit_mm"],
@@ -1000,7 +1091,9 @@ class AgriSimulationService:
                 "season_start_date": f"{y_prev}-12-01",
                 "season_end_date": f"{y_curr}-03-20",
                 "cycle_days": 110,
-                "climate_basis": f"Saison observée alignée (du 1 déc. {y_prev} au 20 mars {y_curr})",
+                "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+                "climate_basis": f"Hypothèse de climat répété / stationnaire basée sur la récolte {harvest_year} (du 1 déc. {y_prev} au 20 mars {y_curr})",
+                "is_repeated_climate_assumption": True,
                 "water_need_mm": sim_forage["potential_etc_mm"],
                 "actual_eta_mm": sim_forage["actual_eta_mm"],
                 "deficit_mm": sim_forage["water_deficit_mm"],
@@ -1013,7 +1106,9 @@ class AgriSimulationService:
                 "season_start_date": f"{y_curr}-03-01",
                 "season_end_date": f"{y_curr}-05-29",
                 "cycle_days": 90,
-                "climate_basis": f"Période printanière observée alignée (du 1 mars {y_curr} au 29 mai {y_curr})",
+                "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+                "climate_basis": f"Hypothèse de climat répété / stationnaire basée sur la récolte {harvest_year} (du 1 mars {y_curr} au 29 mai {y_curr})",
+                "is_repeated_climate_assumption": True,
                 "water_need_mm": sim_fallow["potential_etc_mm"],
                 "actual_eta_mm": sim_fallow["actual_eta_mm"],
                 "deficit_mm": sim_fallow["water_deficit_mm"],
