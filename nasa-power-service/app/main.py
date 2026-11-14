@@ -15,8 +15,9 @@ from app import __version__
 from app.api.agro import router as agro_router
 from app.api.catalogue import router as catalogue_router
 from app.api.climate import router as climate_router
-from app.api.deps import build_climate_service, build_http_client, build_smap_service
+from app.api.deps import build_climate_service, build_http_client, build_smap_service, build_smap_gee_service
 from app.api.smap import router as smap_router
+from app.api.smap_gee import router as smap_gee_router
 from app.core.config import get_settings
 from app.core.exceptions import ClimateServiceError
 from app.models.climate import HealthResponse
@@ -47,6 +48,7 @@ async def lifespan(app: FastAPI):
     app.state.http_client = client
     app.state.climate_service = build_climate_service(settings, client)
     app.state.smap_service = build_smap_service(settings, client)
+    app.state.smap_gee_service = build_smap_gee_service(settings, client)
     logger.info("NASA POWER climate service ready")
     try:
         yield
@@ -104,6 +106,7 @@ app.include_router(climate_router)
 app.include_router(smap_router)
 app.include_router(catalogue_router)
 app.include_router(agro_router)
+app.include_router(smap_gee_router)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 

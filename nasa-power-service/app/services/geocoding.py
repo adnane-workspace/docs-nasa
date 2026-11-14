@@ -7,6 +7,7 @@ import logging
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from typing import Any
 
 import httpx
 
@@ -109,6 +110,89 @@ class GeocodingService:
         self._write_cache(result)
         return result
 
+    async def reverse_geocode(self, latitude: float, longitude: float) -> dict[str, Any]:
+        """Resolve coordinates to a human-friendly city/locality name."""
+        if not (-90.0 <= latitude <= 90.0 and -180.0 <= longitude <= 180.0):
+            raise InvalidRequestError("Latitude must be in [-90, 90] and longitude in [-180, 180].")
+
+        cached = self._read_reverse_cache(latitude, longitude)
+        if cached is not None:
+            logger.info("Reverse geocode cache hit for (%f, %f)", latitude, longitude)
+            return cached
+
+        reverse_url = self._settings.geocoding_base_url.replace("/search", "/reverse")
+        if "reverse" not in reverse_url:
+            reverse_url = "https://nominatim.openstreetmap.org/reverse"
+
+        await self._throttle()
+        try:
+            response = await get_with_retry(
+                self._client,
+                reverse_url,
+                params={
+                    "lat": f"{latitude:.6f}",
+                    "lon": f"{longitude:.6f}",
+                    "format": "jsonv2",
+                    "zoom": "14",
+                    "addressdetails": "1",
+                },
+                headers={
+                    "Accept": "application/json",
+                    "Accept-Language": "fr,en,ar",
+                    "User-Agent": self._settings.geocoding_user_agent,
+                },
+                policy=RetryPolicy(
+                    service_name="NominatimReverse",
+                    max_retries=self._settings.geocoding_max_retries,
+                    base_seconds=self._settings.retry_base_seconds,
+                    max_seconds=self._settings.retry_max_seconds,
+                    timeout_error=GeocodingTimeoutError,
+                    rate_limit_error=GeocodingRateLimitError,
+                    network_error=GeocodingNetworkError,
+                    http_error=GeocodingError,
+                ),
+                timeout=self._settings.geocoding_timeout_seconds,
+            )
+            if response.status_code < 400:
+                payload = response.json()
+                if isinstance(payload, dict) and "error" not in payload:
+                    address = payload.get("address", {})
+                    city_part = (
+                        address.get("city")
+                        or address.get("town")
+                        or address.get("village")
+                        or address.get("municipality")
+                        or address.get("suburb")
+                        or address.get("county")
+                        or address.get("state_district")
+                        or address.get("state")
+                        or "Position GPS"
+                    )
+                    country_part = address.get("country", "")
+                    city_name = f"{city_part}, {country_part}".strip(", ") if country_part else city_part
+                    display_name = payload.get("display_name", city_name)
+
+                    result = {
+                        "latitude": latitude,
+                        "longitude": longitude,
+                        "city": city_name,
+                        "display_name": display_name,
+                        "cached": False,
+                    }
+                    self._write_reverse_cache(latitude, longitude, result)
+                    return result
+        except Exception as exc:
+            logger.warning("Reverse geocoding failed for (%f, %f): %s", latitude, longitude, exc)
+
+        # Resilient fallback if upstream reverse lookup fails
+        return {
+            "latitude": latitude,
+            "longitude": longitude,
+            "city": f"Coordonnées ({latitude:.4f}, {longitude:.4f})",
+            "display_name": f"Position GPS ({latitude:.4f}, {longitude:.4f})",
+            "cached": False,
+        }
+
     async def _throttle(self) -> None:
         interval = self._settings.geocoding_min_interval_seconds
         if interval <= 0:
@@ -151,6 +235,36 @@ class GeocodingService:
             )
         except OSError:
             logger.exception("Failed to write geocode cache for %s", result.query)
+
+    def _read_reverse_cache(self, latitude: float, longitude: float) -> dict[str, Any] | None:
+        payload = self._cache.read_json(self._cache.reverse_geocode_path(latitude, longitude))
+        if payload is None:
+            return None
+        try:
+            return {
+                "latitude": float(payload["latitude"]),
+                "longitude": float(payload["longitude"]),
+                "city": str(payload["city"]),
+                "display_name": str(payload.get("display_name", payload["city"])),
+                "cached": True,
+            }
+        except (KeyError, TypeError, ValueError):
+            return None
+
+    def _write_reverse_cache(self, latitude: float, longitude: float, result: dict[str, Any]) -> None:
+        try:
+            self._cache.write_json(
+                self._cache.reverse_geocode_path(latitude, longitude),
+                {
+                    "latitude": latitude,
+                    "longitude": longitude,
+                    "city": result["city"],
+                    "display_name": result.get("display_name", result["city"]),
+                    "retrieved_at": datetime.now(timezone.utc).isoformat(),
+                },
+            )
+        except OSError:
+            logger.exception("Failed to write reverse geocode cache for (%f, %f)", latitude, longitude)
 
     def _parse_hit(self, query: str, hit: object) -> GeocodeResult:
         if not isinstance(hit, dict):

@@ -20,7 +20,8 @@ class FileCache:
         self.processed_dir = root / "processed"
         self.geocode_dir = root / "geocode"
         self.smap_dir = root / "smap"
-        for directory in (self.raw_dir, self.processed_dir, self.geocode_dir, self.smap_dir):
+        self.smap_gee_dir = root / "smap_gee"
+        for directory in (self.raw_dir, self.processed_dir, self.geocode_dir, self.smap_dir, self.smap_gee_dir):
             directory.mkdir(parents=True, exist_ok=True)
 
     @staticmethod
@@ -68,8 +69,32 @@ class FileCache:
     def geocode_path(self, city: str) -> Path:
         return self.geocode_dir / f"{self.geocode_key(city)}.json"
 
+    @staticmethod
+    def reverse_geocode_key(latitude: float, longitude: float) -> str:
+        return f"rev_{latitude:.4f}_{longitude:.4f}"
+
+    def reverse_geocode_path(self, latitude: float, longitude: float) -> Path:
+        return self.geocode_dir / f"{self.reverse_geocode_key(latitude, longitude)}.json"
+
     def smap_path(self, key: str) -> Path:
         return self.smap_dir / f"{key}.json"
+
+    def smap_gee_path(self, key: str) -> Path:
+        return self.smap_gee_dir / f"{key}.json"
+
+    @staticmethod
+    def smap_gee_key(
+        *,
+        latitude: float,
+        longitude: float,
+        start_date: date,
+        end_date: date,
+        mode: str,
+        scale: int,
+    ) -> str:
+        identity = f"{latitude:.4f}|{longitude:.4f}|{start_date.isoformat()}|{end_date.isoformat()}|{mode}|{scale}"
+        digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:16]
+        return f"smap_gee_{latitude:.4f}_{longitude:.4f}_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}_{mode}_{digest}"
 
     def read_json(self, path: Path) -> dict | None:
         if not path.is_file():

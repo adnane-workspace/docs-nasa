@@ -53,8 +53,7 @@ class Settings(BaseSettings):
 
     geocoding_base_url: str = "https://nominatim.openstreetmap.org/search"
     geocoding_user_agent: str = (
-        "NASA-Space-Apps-Climate-Service/0.1 "
-        "(agricultural climate demo; set GEOCODING_USER_AGENT to identify your installation)"
+        "FIELDShift-AI-EarthObservation/1.0 (NASA SMAP Agricultural Explorer; support@fieldshift.ai)"
     )
     geocoding_min_interval_seconds: float = 1.1
     geocoding_timeout_seconds: float = 20.0
@@ -65,6 +64,14 @@ class Settings(BaseSettings):
     smap_page_size: int = 20
     smap_max_date_range_days: int = 366
     smap_earliest_date: date = date(2015, 3, 31)
+
+    # Google Earth Engine NASA SMAP Level-4 SPL4SMGP V008 Integration
+    gee_project_id: str = "fieldshift-514709"
+    smap_l4_gee_dataset: str = "NASA/SMAP/SPL4SMGP/008"
+    smap_gee_scale: int = 11000
+    smap_gee_max_date_range_days: int = 3660
+    smap_gee_3hourly_max_days: int = 31
+    smap_gee_earliest_date: date = date(2015, 3, 31)
 
     cache_dir: Path = Path("data")
     hot_day_threshold_c: float = 30.0
