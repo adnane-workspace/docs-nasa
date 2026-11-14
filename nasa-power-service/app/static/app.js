@@ -7,14 +7,16 @@
 const AppState = {
   view: "welcome", // "welcome" | "choice" | "agri" | "sci"
   location: {
-    city: "Tanger, Maroc",
-    lat: 35.7687,
-    lon: -5.8139
+    city: "Ma Position Actuelle",
+    lat: 33.8938,
+    lon: -5.5516
   },
   year: "2025",
   agriData: null,
   sciData: null,
-  activeSciCatFilter: "all"
+  activeSciCatFilter: "all",
+  aiFocus: null, // { type: 'chart' | 'variable', id: string, name: string }
+  lastVariable: null
 };
 
 let chartInstances = {};
@@ -31,8 +33,9 @@ document.addEventListener("DOMContentLoaded", () => {
   initClassicPower();
   initDarijaDrawer();
   loadVariablesCatalog();
+  initAiPageViewControls();
 
-  // Restore saved location if present, else keep Tanger
+  // Restore saved location if present, else auto-detect GPS
   restoreSavedLocation();
 
   // Show welcome view first (clean, no clutter)
@@ -44,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
    ========================================================================== */
 function showSmapView(viewName) {
   AppState.view = viewName;
-  const views = ["welcome", "choice", "agri", "sci"];
+  const views = ["welcome", "choice", "agri", "sci", "ai"];
   
   views.forEach(v => {
     const el = document.getElementById(`smap-view-${v}`);
@@ -223,6 +226,14 @@ function initChoiceViewControls() {
     });
   }
 
+  // Button 3: Mode Conseiller IA & Plan d'Action
+  const btnAi = document.getElementById("btn-choose-ai");
+  if (btnAi) {
+    btnAi.addEventListener("click", async () => {
+      await loadAndDisplayAiMode();
+    });
+  }
+
   // Back to welcome
   const btnBackWelcome = document.getElementById("btn-back-to-welcome");
   if (btnBackWelcome) {
@@ -237,13 +248,21 @@ function updateChoiceLocationDisplay() {
   const coordsEl = document.getElementById("choice-display-coords");
   if (cityEl) cityEl.textContent = AppState.location.city;
   if (coordsEl) coordsEl.textContent = `Coordonnées : ${AppState.location.lat.toFixed(4)}°N, ${AppState.location.lon.toFixed(4)}°W (EASE-Grid 2.0 ~9-11 km)`;
+
+  const aiLocEl = document.getElementById("ai-page-current-loc");
+  const aiStripEl = document.getElementById("ai-strip-city");
+  if (aiLocEl) aiLocEl.textContent = `📍 ${AppState.location.city}`;
+  if (aiStripEl) aiStripEl.textContent = `📍 ${AppState.location.city} (${AppState.location.lat.toFixed(4)}°N, ${AppState.location.lon.toFixed(4)}°W)`;
+
+  syncAiContextStrip();
 }
 
 function syncYearSelects(yearVal) {
-  ["choice-year-select", "agri-year-select", "sci-year-select"].forEach(id => {
+  ["choice-year-select", "agri-year-select", "sci-year-select", "ai-page-year-select"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = yearVal;
   });
+  syncAiContextStrip();
 }
 
 function saveLocation(loc) {
@@ -368,6 +387,14 @@ function initAgriViewControls() {
   if (btnSwitch) {
     btnSwitch.addEventListener("click", async () => {
       await loadAndDisplaySciMode();
+    });
+  }
+
+  // Switch to AI Advisor mode directly
+  const btnSwitchAi = document.getElementById("btn-switch-agri-to-ai");
+  if (btnSwitchAi) {
+    btnSwitchAi.addEventListener("click", async () => {
+      await loadAndDisplayAiMode();
     });
   }
 
@@ -728,6 +755,14 @@ function initSciViewControls() {
   if (btnSwitch) {
     btnSwitch.addEventListener("click", async () => {
       await loadAndDisplayAgriMode();
+    });
+  }
+
+  // Switch to AI Advisor mode directly
+  const btnSwitchAi = document.getElementById("btn-switch-sci-to-ai");
+  if (btnSwitchAi) {
+    btnSwitchAi.addEventListener("click", async () => {
+      await loadAndDisplayAiMode();
     });
   }
 
@@ -1247,6 +1282,13 @@ async function openDarijaDrawer(varId, value, period, locationName) {
     document.getElementById("drawer-q8-forbidden").textContent = data.conclusions_forbidden;
     document.getElementById("drawer-caveat-text").textContent = data.caveat_note;
 
+    AppState.lastVariable = {
+      id: varId,
+      name_fr: data.name_fr,
+      name_en: data.name_en,
+      display_value: data.display_value
+    };
+
     drawer.classList.add("open");
     backdrop.classList.add("active");
 
@@ -1410,3 +1452,862 @@ function initClassicPower() {
     }
   });
 }
+
+/* ==========================================================================
+   VUE 5 : PAGE DÉDIÉE : CONSEILLER IA NEMOTRON & PLAN D'ACTION (Page 3)
+   ========================================================================== */
+
+function syncAiContextStrip() {
+  const locEl = document.getElementById("ai-page-current-loc");
+  const stripEl = document.getElementById("ai-strip-city");
+  const yearEl = document.getElementById("ai-page-year-select");
+
+  if (locEl && AppState.location) locEl.textContent = `📍 ${AppState.location.city}`;
+  if (stripEl && AppState.location) stripEl.textContent = `📍 ${AppState.location.city} (${AppState.location.lat.toFixed(4)}°N, ${AppState.location.lon.toFixed(4)}°W)`;
+  if (yearEl && AppState.year) yearEl.value = AppState.year;
+}
+
+function isArabicScript(text) {
+  return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(text || "");
+}
+
+function formatAiMarkdown(text) {
+  if (!text) return "";
+  let html = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  // Headers
+  html = html.replace(/^### (.*$)/gim, '<h4 style="margin:0.6rem 0 0.3rem;font-weight:700;color:#0f172a">$1</h4>');
+  html = html.replace(/^## (.*$)/gim, '<h3 style="margin:0.8rem 0 0.4rem;font-weight:800;color:#0f172a">$1</h3>');
+  html = html.replace(/^# (.*$)/gim, '<h3 style="margin:0.9rem 0 0.45rem;font-weight:800;color:#0f172a">$1</h3>');
+
+  // Bold, italic, code
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+  html = html.replace(/`(.*?)`/g, '<code style="background:#f1f5f9;padding:0.1rem 0.35rem;border-radius:3px;font-size:0.85em">$1</code>');
+
+  // Blockquotes
+  html = html.replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>');
+
+  // Horizontal rules
+  html = html.replace(/^---$/gim, '<hr style="border:none;border-top:1px solid #e2e8f0;margin:0.75rem 0">');
+
+  // Markdown Table conversion
+  const lines = html.split("\n");
+  let inTable = false;
+  let tableHtml = "";
+  let outLines = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line.startsWith("|") && line.endsWith("|")) {
+      if (line.replace(/[\s|:-]/g, "") === "") {
+        continue;
+      }
+      const cells = line.slice(1, -1).split("|").map(c => c.trim());
+      if (!inTable) {
+        inTable = true;
+        tableHtml = '<table><thead><tr>' + cells.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+      } else {
+        tableHtml += '<tr>' + cells.map(c => `<td>${c}</td>`).join('') + '</tr>';
+      }
+    } else {
+      if (inTable) {
+        inTable = false;
+        tableHtml += '</tbody></table>';
+        outLines.push(tableHtml);
+        tableHtml = "";
+      }
+      outLines.push(lines[i]);
+    }
+  }
+  if (inTable) {
+    tableHtml += '</tbody></table>';
+    outLines.push(tableHtml);
+  }
+
+  html = outLines.join("\n");
+
+  // Bullet lists
+  html = html.replace(/^\s*[-*]\s+(.*$)/gim, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>)/gms, '<ul style="margin:0.4rem 0;padding-inline-start:1.25rem">$1</ul>');
+
+  // Paragraphs
+  html = html.split(/\n{2,}/).map(para => {
+    para = para.trim();
+    if (!para) return "";
+    if (para.startsWith("<h") || para.startsWith("<table") || para.startsWith("<ul") || para.startsWith("<blockquote") || para.startsWith("<hr")) {
+      return para;
+    }
+    return `<p style="margin:0 0 0.5rem">${para.replace(/\n/g, '<br>')}</p>`;
+  }).join("\n");
+
+  return html;
+}
+
+function initAiPageViewControls() {
+  // Back to choice
+  const btnBack = document.getElementById("btn-back-from-ai");
+  if (btnBack) {
+    btnBack.addEventListener("click", () => {
+      updateChoiceLocationDisplay();
+      showSmapView("choice");
+    });
+  }
+
+  // Direct page switches
+  const btnSwitchAgri = document.getElementById("btn-switch-ai-to-agri");
+  if (btnSwitchAgri) {
+    btnSwitchAgri.addEventListener("click", async () => {
+      await loadAndDisplayAgriMode();
+    });
+  }
+
+  const btnSwitchSci = document.getElementById("btn-switch-ai-to-sci");
+  if (btnSwitchSci) {
+    btnSwitchSci.addEventListener("click", async () => {
+      await loadAndDisplaySciMode();
+    });
+  }
+
+  // Year select
+  const selectYear = document.getElementById("ai-page-year-select");
+  if (selectYear) {
+    selectYear.addEventListener("change", async () => {
+      AppState.year = selectYear.value;
+      syncYearSelects(AppState.year);
+      await runVirtualLabSimulation("none");
+    });
+  }
+
+  // Virtual Lab controls
+  initVirtualLabControls();
+
+  // Prompt chips
+  const promptChips = document.getElementById("ai-page-prompt-chips");
+  const input = document.getElementById("ai-page-input-text");
+  const form = document.getElementById("ai-page-chat-form");
+
+  if (promptChips) {
+    promptChips.addEventListener("click", (e) => {
+      const chip = e.target.closest(".ai-prompt-chip");
+      if (!chip) return;
+      const promptText = chip.dataset.prompt;
+      if (promptText && input) {
+        input.value = promptText;
+        if (form) form.dispatchEvent(new Event("submit"));
+      }
+    });
+  }
+
+  // Chat form submit
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = input.value.trim();
+      if (!msg) return;
+
+      input.value = "";
+      input.style.height = "auto";
+      await executeAiPageChat(msg);
+    });
+
+    if (input) {
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          form.dispatchEvent(new Event("submit"));
+        }
+      });
+      input.addEventListener("input", () => {
+        input.style.height = "auto";
+        input.style.height = Math.min(input.scrollHeight, 120) + "px";
+      });
+    }
+  }
+}
+
+/* ==========================================================================
+   VIRTUAL AGRICULTURAL LABORATORY ENGINE (المختبر الزراعي الافتراضي المحاكي للمستقبل)
+   ========================================================================== */
+function initVirtualLabControls() {
+  if (AppState.simControlsInitialized) return;
+  AppState.simControlsInitialized = true;
+
+  // 1. Lab sub-tabs switcher
+  document.querySelectorAll(".sim-tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".sim-tab-btn").forEach(b => {
+        b.classList.remove("active");
+        b.setAttribute("aria-selected", "false");
+      });
+      btn.classList.add("active");
+      btn.setAttribute("aria-selected", "true");
+
+      const targetTabId = btn.dataset.simtab;
+      document.querySelectorAll(".sim-tab-panel").forEach(panel => {
+        panel.classList.remove("active");
+        panel.hidden = true;
+      });
+      const targetPanel = document.getElementById(targetTabId);
+      if (targetPanel) {
+        targetPanel.classList.add("active");
+        targetPanel.hidden = false;
+      }
+    });
+  });
+
+  // 2. Climate Attack Shock buttons
+  document.querySelectorAll(".shock-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      document.querySelectorAll(".shock-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const shock = btn.dataset.shock || "none";
+      await runVirtualLabSimulation(shock);
+    });
+  });
+
+  // 3. Farmer simulation form submission
+  const simForm = document.getElementById("sim-config-form");
+  if (simForm) {
+    simForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const activeShockBtn = document.querySelector(".shock-btn.active");
+      const shock = activeShockBtn ? activeShockBtn.dataset.shock : "none";
+      await runVirtualLabSimulation(shock);
+    });
+  }
+
+  // 4. Soil sampling protocol accordion toggle
+  const btnToggleProto = document.getElementById("btn-toggle-protocol");
+  const protoContent = document.getElementById("protocol-accordion-content");
+  const protoArrow = document.getElementById("protocol-arrow");
+  if (btnToggleProto && protoContent) {
+    btnToggleProto.addEventListener("click", () => {
+      const isHidden = protoContent.hidden;
+      protoContent.hidden = !isHidden;
+      if (protoArrow) protoArrow.textContent = isHidden ? "▲" : "▼";
+      if (isHidden) renderSoilSamplingProtocol();
+    });
+  }
+}
+
+async function loadAndDisplayAiMode(forceReload = false) {
+  showSmapView("ai");
+  syncAiContextStrip();
+  initVirtualLabControls();
+
+  if (!AppState.simulationData || forceReload) {
+    await runVirtualLabSimulation("none");
+  }
+}
+
+async function runVirtualLabSimulation(shockOverride = "none") {
+  const statusLabel = document.getElementById("sim-run-status");
+  const runBtn = document.getElementById("btn-run-simulation");
+
+  if (statusLabel) statusLabel.hidden = false;
+  if (runBtn) runBtn.disabled = true;
+
+  const soilSelect = document.getElementById("sim-soil-select");
+  const waterSelect = document.getElementById("sim-water-select");
+  const budgetSelect = document.getElementById("sim-budget-select");
+  const refYearSelect = document.getElementById("sim-ref-year-select");
+
+  const soilType = soilSelect ? soilSelect.value : "limoneux_profond";
+  const waterAccess = waterSelect ? waterSelect.value : "appoint";
+  const budget = budgetSelect ? budgetSelect.value : "moyen";
+  const compareYear = refYearSelect ? parseInt(refYearSelect.value) : 2023;
+  const simYear = parseInt(AppState.year) || 2025;
+
+  const payload = {
+    location: {
+      name: AppState.location.city,
+      latitude: AppState.location.lat,
+      longitude: AppState.location.lon
+    },
+    year: simYear,
+    soil_type: soilType,
+    water_access: waterAccess,
+    budget: budget,
+    climate_shock: shockOverride,
+    historical_compare_year: compareYear
+  };
+
+  try {
+    const res = await fetch("/api/ai/simulate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.message || `Erreur serveur ${res.status}`);
+    }
+
+    const data = await res.json();
+    AppState.simulationData = data;
+
+    // Render all 4 Virtual Laboratories
+    renderCropBattleLab(data);
+    renderClimateAttackLab(data);
+    renderFarmTimeMachine(data);
+    renderScientificTribunal(data);
+    renderSoilSamplingProtocol();
+
+  } catch (err) {
+    console.error("Virtual Lab simulation error:", err);
+    alert(`تعذر تشغيل المحاكاة: ${err.message}`);
+  } finally {
+    if (statusLabel) statusLabel.hidden = true;
+    if (runBtn) runBtn.disabled = false;
+  }
+}
+
+function renderCropBattleLab(data) {
+  if (!data || !data.plans) return;
+
+  const winner = data.plans.find(p => p.id === data.winner_plan_id) || data.plans[1] || data.plans[0];
+
+  // 1. Top Winner Banner
+  const titleEl = document.getElementById("battle-winner-title");
+  const descEl = document.getElementById("battle-winner-desc");
+  const scoreEl = document.getElementById("battle-winner-score");
+
+  if (titleEl) titleEl.textContent = winner.name_ar;
+  if (descEl) descEl.textContent = winner.summary_darija;
+  if (scoreEl) scoreEl.textContent = Math.round(winner.resilience_score);
+
+  // 2. Render 3 Plan Cards
+  const plansContainer = document.getElementById("battle-plans-cards");
+  if (plansContainer) {
+    plansContainer.innerHTML = data.plans.map(p => {
+      const isWinner = p.id === data.winner_plan_id;
+      const stressFillClass = p.water_stress_risk_pct < 25 ? "fill-safe" : (p.water_stress_risk_pct < 50 ? "fill-moderate" : "fill-danger");
+
+      return `
+        <div class="plan-scorecard ${isWinner ? 'winner' : ''}">
+          <div class="plan-card-header">
+            <div class="plan-title-box">
+              <h4>${isWinner ? '🏆 ' : ''}${p.name_ar}</h4>
+              <p class="plan-title-sub">${p.name_fr}</p>
+            </div>
+            <div class="plan-resilience-badge">
+              <span class="plan-res-val">${Math.round(p.resilience_score)}</span>
+              <span class="plan-res-sub">الصمود</span>
+            </div>
+          </div>
+
+          <div class="plan-metrics-grid">
+            <div class="plan-metric-item">
+              <span>💧 الاحتياج المائي : <strong>${p.water_need_mm} مم</strong></span>
+              <div class="metric-bar-wrapper">
+                <div class="metric-bar-fill fill-safe" style="width: ${Math.min(100, (p.water_need_mm / 450) * 100)}%"></div>
+              </div>
+            </div>
+            <div class="plan-metric-item">
+              <span>⚠️ خطر الإجهاد المائي : <strong>${p.water_stress_risk_pct}%</strong></span>
+              <div class="metric-bar-wrapper">
+                <div class="metric-bar-fill ${stressFillClass}" style="width: ${Math.min(100, p.water_stress_risk_pct)}%"></div>
+              </div>
+            </div>
+            <div class="plan-metric-item">
+              <span>🌱 صحة وخصوبة التربة : <strong>${p.soil_health_score}/100</strong></span>
+              <div class="metric-bar-wrapper">
+                <div class="metric-bar-fill fill-safe" style="width: ${p.soil_health_score}%"></div>
+              </div>
+            </div>
+            <div class="plan-metric-item">
+              <span>📈 استقرار الغلة والإنتاج : <strong>${p.yield_stability_score}/100</strong></span>
+              <div class="metric-bar-wrapper">
+                <div class="metric-bar-fill fill-safe" style="width: ${p.yield_stability_score}%"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="plan-summary-darija">
+            <p>${p.summary_darija}</p>
+          </div>
+
+          <div class="plan-pro-con-grid">
+            <div>
+              <strong style="color:#166534">نقط القوة :</strong>
+              <ul class="pro-list">
+                ${(p.pros || []).map(item => `<li>${item}</li>`).join('')}
+              </ul>
+            </div>
+            <div>
+              <strong style="color:#991b1b">المخاطر :</strong>
+              <ul class="con-list">
+                ${(p.cons || []).map(item => `<li>${item}</li>`).join('')}
+              </ul>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 3. Render Radar Chart
+  renderSimRadarChart(data);
+}
+
+function renderSimRadarChart(data) {
+  const canvas = document.getElementById("chart-sim-radar");
+  if (!canvas || typeof Chart === "undefined") return;
+
+  if (chartInstances["sim-radar"]) {
+    chartInstances["sim-radar"].destroy();
+  }
+
+  const p1 = data.plans[0] || {};
+  const p2 = data.plans[1] || {};
+  const p3 = data.plans[2] || {};
+
+  const labels = ["صمود الجفاف", "حفظ التربة", "ملائمة الميزانية", "توفير الماء", "استقرار الغلة"];
+
+  const datasetP1 = [
+    Math.max(5, 100 - (p1.water_stress_risk_pct || 0)),
+    p1.soil_health_score || 40,
+    p1.budget_fit_score || 70,
+    Math.max(10, 100 - ((p1.water_deficit_mm || 0) * 0.4)),
+    p1.yield_stability_score || 50
+  ];
+
+  const datasetP2 = [
+    Math.max(5, 100 - (p2.water_stress_risk_pct || 0)),
+    p2.soil_health_score || 80,
+    p2.budget_fit_score || 85,
+    Math.max(10, 100 - ((p2.water_deficit_mm || 0) * 0.4)),
+    p2.yield_stability_score || 85
+  ];
+
+  const datasetP3 = [
+    Math.max(5, 100 - (p3.water_stress_risk_pct || 0)),
+    p3.soil_health_score || 95,
+    p3.budget_fit_score || 90,
+    Math.max(10, 100 - ((p3.water_deficit_mm || 0) * 0.4)),
+    p3.yield_stability_score || 75
+  ];
+
+  chartInstances["sim-radar"] = new Chart(canvas.getContext("2d"), {
+    type: "radar",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "الخطة 1 : القمح كل عام",
+          data: datasetP1,
+          borderColor: "#ef4444",
+          backgroundColor: "rgba(239, 68, 68, 0.15)",
+          borderWidth: 2,
+          pointBackgroundColor: "#ef4444"
+        },
+        {
+          label: "الخطة 2 : قمح - عدس - شعير",
+          data: datasetP2,
+          borderColor: "#10b981",
+          backgroundColor: "rgba(16, 185, 129, 0.25)",
+          borderWidth: 2.5,
+          pointBackgroundColor: "#10b981"
+        },
+        {
+          label: "الخطة 3 : نظام بيئي وغطاء",
+          data: datasetP3,
+          borderColor: "#6366f1",
+          backgroundColor: "rgba(99, 102, 241, 0.15)",
+          borderWidth: 2,
+          pointBackgroundColor: "#6366f1"
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        r: {
+          min: 0,
+          max: 100,
+          ticks: {
+            stepSize: 20,
+            color: "#64748b",
+            font: { size: 10 }
+          },
+          grid: {
+            color: "#e2e8f0"
+          },
+          pointLabels: {
+            font: {
+              family: "Cairo",
+              size: 11,
+              weight: "bold"
+            },
+            color: "#1e293b"
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          display: false
+        }
+      }
+    }
+  });
+}
+
+function renderClimateAttackLab(data) {
+  const summaryEl = document.getElementById("shock-impact-summary");
+  const cardsContainer = document.getElementById("shock-cards-grid");
+
+  if (summaryEl) {
+    summaryEl.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem">
+        <div>
+          <h4 style="margin:0;font-size:1.05rem;color:#9a3412">🌪️ تقرير هجوم الصدمة المناخية : <strong>${data.shock_label}</strong></h4>
+          <p style="margin:0.25rem 0 0;font-size:0.85rem;color:#7c2d12">
+            تم تطبيق المحاكاة على تربة <strong>${data.soil_type_label}</strong> بحقلك بمعدل سقي <strong>${data.water_access_label}</strong>.
+          </p>
+        </div>
+        <span class="crop-badge-fit" style="background:#ffedd5;color:#c2410c;border-color:#fed7aa">
+          ⚡ محاكاة فيزيائية حقيقية
+        </span>
+      </div>
+    `;
+  }
+
+  if (cardsContainer && data.plans) {
+    cardsContainer.innerHTML = data.plans.map(p => {
+      const isDangerous = p.water_stress_risk_pct > 50;
+      return `
+        <div class="tm-metric-card" style="border-left: 4px solid ${isDangerous ? '#ef4444' : '#10b981'}">
+          <span class="tm-metric-label">${p.name_ar}</span>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin:0.4rem 0">
+            <span class="tm-metric-val" style="color: ${isDangerous ? '#dc2626' : '#15803d'}">${p.water_stress_risk_pct}%</span>
+            <span class="crop-badge-fit" style="background:${isDangerous ? '#fee2e2' : '#dcfce7'};color:${isDangerous ? '#991b1b' : '#166534'}">
+              ${p.status_tag}
+            </span>
+          </div>
+          <p style="font-size:0.8rem;color:#475569;margin:0.2rem 0">عجز مائي مسجل : <strong>${p.water_deficit_mm} مم</strong></p>
+          <small style="color:#64748b;display:block;margin-top:0.3rem">${p.summary_darija.slice(0, 110)}...</small>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+function renderFarmTimeMachine(data) {
+  const container = document.getElementById("tm-content-container");
+  if (!container) return;
+
+  const b = data.baseline_metrics || {};
+  const winner = data.plans.find(p => p.id === data.winner_plan_id) || data.plans[1];
+  const p1 = data.plans[0];
+
+  const waterSaved = Math.max(0, Math.round((p1.water_need_mm || 440) - (winner.water_need_mm || 345)));
+  const stressDiff = Math.max(0, Math.round((p1.water_stress_risk_pct || 60) - (winner.water_stress_risk_pct || 25)));
+
+  container.innerHTML = `
+    <div class="tm-metrics-grid">
+      <div class="tm-metric-card">
+        <span class="tm-metric-label">التساقطات المسجلة تاريخياً (NASA POWER)</span>
+        <span class="tm-metric-val">${b.precip_annual_mm || 320} مم</span>
+        <span class="tm-metric-diff diff-positive">بيانات حقيقية مرصودة</span>
+      </div>
+
+      <div class="tm-metric-card">
+        <span class="tm-metric-label">رطوبة منطقة الجذور SMAP L4</span>
+        <span class="tm-metric-val">${b.sm_rootzone_mean || 0.24} م³/م³</span>
+        <span class="tm-metric-diff diff-positive">عمق 0-100 سم</span>
+      </div>
+
+      <div class="tm-metric-card">
+        <span class="tm-metric-label">توفير مياه الري عند تطبيق الخطة 2</span>
+        <span class="tm-metric-val">+${waterSaved} مم</span>
+        <span class="tm-metric-diff diff-positive">+${waterSaved * 10} م³/هكتار</span>
+      </div>
+
+      <div class="tm-metric-card">
+        <span class="tm-metric-label">تخفيض خطر الإجهاد المائي والجفاف</span>
+        <span class="tm-metric-val">-${stressDiff}%</span>
+        <span class="tm-metric-diff diff-positive">حماية من الخسارة المالية</span>
+      </div>
+    </div>
+
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:1.25rem;direction:rtl;text-align:right;font-family:'Cairo',sans-serif">
+      <h4 style="margin:0 0 0.5rem;font-size:1.05rem;color:#1e1b4b">
+        💡 التحليل العكسي لآلة الزمن (Simulation Rétrospective)
+      </h4>
+      <p style="color:#334155;line-height:1.7;font-size:0.9rem;margin:0">
+        لو كنتي فالسنة المرجعية (${data.year}) طبقتي <strong>الخطة 2 (الدورة الثلاثية قمح-عدس-شعير)</strong> فبقعتك، 
+        كنتي غادي توفر حوالي <strong>${waterSaved * 10} متر مكعب ديال الماء فكل هكتار</strong>، والقطاني كانت غادي تثبت ليك 
+        أكثر من <strong>40 كلغ ديال الآزوت الطبيعي</strong> فالتراب مجاناً، وما كنتيش غادي تعاني من الخسائر الكبيرة لي وقعات 
+        بسباب جفاف شهري مارس وأبريل.
+      </p>
+    </div>
+  `;
+}
+
+function renderScientificTribunal(data) {
+  const grid = document.getElementById("tribunal-agents-grid");
+  const supremeBox = document.getElementById("tribunal-supreme-box");
+
+  if (grid && data.tribunal_verdicts) {
+    grid.innerHTML = data.tribunal_verdicts.map(v => `
+      <div class="tribunal-agent-card">
+        <div class="tribunal-agent-header">
+          <div class="tribunal-agent-avatar">${v.avatar}</div>
+          <div>
+            <span class="tribunal-agent-role">${v.agent_role}</span>
+            <small class="tribunal-agent-name">${v.agent_name}</small>
+          </div>
+        </div>
+
+        <div class="tribunal-evidence-chip">
+          <strong>الدليل العلمي :</strong> ${v.key_evidence}
+        </div>
+
+        <div class="tribunal-verdict-text">
+          <p>${v.argument_darija}</p>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  if (supremeBox) {
+    supremeBox.innerHTML = `
+      <div class="crop-reply-box" style="direction:rtl;text-align:right">
+        ${formatAiMarkdown(data.overall_synthesis_darija)}
+      </div>
+      <div class="ai-bubble-meta" style="margin-top:1.25rem;display:flex;gap:0.6rem;justify-content:flex-start">
+        <span class="source-tag" style="background:rgba(255,255,255,0.15);color:#ffffff;border:none">
+          📡 ${data.sources_used ? data.sources_used.join(' · ') : 'NASA SMAP L4 · NASA POWER'}
+        </span>
+        <span class="valid-tag" style="background:#10b981;color:#ffffff;border:none">
+          ✅ محكمة علمية مصادق عليها
+        </span>
+      </div>
+    `;
+  }
+}
+
+function renderSoilSamplingProtocol() {
+  const container = document.getElementById("lab-plan-output");
+  if (!container) return;
+
+  container.innerHTML = `
+    <div style="border-bottom:1px solid #cbd5e1;padding-bottom:0.75rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem">
+      <div>
+        <h4 style="font-weight:800;color:#1e1b4b;margin:0;font-size:1.05rem">🧪 بروتوكول التحاليل المخبرية المعتمد للموقع</h4>
+        <small style="color:#64748b">Parcelle : <strong>${AppState.location.city}</strong> · Coordonnées : <strong>${AppState.location.lat.toFixed(4)}°N, ${AppState.location.lon.toFixed(4)}°W</strong></small>
+      </div>
+      <button type="button" class="btn-sm" onclick="window.print()" style="font-size:0.78rem">🖨️ طباعة الخطة</button>
+    </div>
+
+    <div class="lab-step-row">
+      <div class="lab-step-badge">1</div>
+      <div>
+        <strong>الخطوة 1 : شبكة أخذ العينات GPS (Géoréférencement)</strong>
+        <p style="margin:0.2rem 0;color:#475569">تقسيم القطعة الفلاحية إلى وحدات متجانسة (قطعة من 2 إلى 5 هكتار لكل عينة مركبة تتكون من 15 إلى 20 نقطة أخذ فرعية على شكل زيكزاك Z).</p>
+      </div>
+    </div>
+
+    <div class="lab-step-row">
+      <div class="lab-step-badge">2</div>
+      <div>
+        <strong>الخطوة 2 : عمق أخذ العينات (Double Horizon)</strong>
+        <p style="margin:0.2rem 0;color:#475569">
+          • <strong>الطبقة السطحية (0-20 سم) :</strong> لتقييم المهد الحبي، المادة العضوية، ودرجة الحموضة (pH).<br>
+          • <strong>طبقة الجذور (20-40 سم و 40-60 سم) :</strong> لتقييم مخزون الماء الاحتياطي ومطابقته مع رطوبة SMAP L4 (sm_rootzone).
+        </p>
+      </div>
+    </div>
+
+    <div class="lab-step-row">
+      <div class="lab-step-badge">3</div>
+      <div>
+        <strong>الخطوة 3 : التحاليل الفيزيائية والكيميائية الإلزامية بالمختبر</strong>
+        <p style="margin:0.2rem 0;color:#475569">
+          • <strong>قوام التربة (Texture) :</strong> نسبة الطين، الطمي، والرمل لتحديد سعة الاحتفاظ بالماء.<br>
+          • <strong>الملوحة والحموضة :</strong> قياس الناقلية الكهربائية (CEe dS/m) ودرجة pH (eau/KCl).<br>
+          • <strong>الكلس الفعال (Calcaire actif) :</strong> لتفادي تثبيت الفوسفور ونقص الحديد.<br>
+          • <strong>الخصوبة الكيميائية N-P-K :</strong> الآزوت المعدني ($NO_3^-$)، الفوسفور القابل للامتصاص (Olsen)، والبوتاس القابل للتبادل ($K_2O$).
+        </p>
+      </div>
+    </div>
+
+    <div class="lab-step-row">
+      <div class="lab-step-badge">4</div>
+      <div>
+        <strong>الخطوة 4 : المطابقة ومعايرة الأقمار الاصطناعية (NASA Calibration)</strong>
+        <p style="margin:0.2rem 0;color:#475569">مقارنة نسبة رطوبة المختبر بالوزن مع قياس القمر الاصطناعي NASA SMAP لتحديد عتبات الري بالتدقيق لحقلك.</p>
+      </div>
+    </div>
+
+    <div class="lab-step-row">
+      <div class="lab-step-badge">5</div>
+      <div>
+        <strong>الخطوة 5 : تسليم بطاقة التسميد وجدولة الري</strong>
+        <p style="margin:0.2rem 0;color:#475569">صياغة برنامج التسميد الأساسي (Fumure de fond) وجدول الري التكميلي قبل وضع البذور بالتربة.</p>
+      </div>
+    </div>
+  `;
+}
+
+async function executeAiPageChat(userText) {
+  const feed = document.getElementById("ai-page-messages");
+  const sendBtn = document.getElementById("btn-ai-page-send");
+  const langSelect = document.getElementById("ai-page-lang-select");
+
+  if (!feed) return;
+
+  // 1. Append User Bubble
+  const userRow = document.createElement("div");
+  userRow.className = "ai-bubble-row user";
+  const isUserArabic = isArabicScript(userText);
+  userRow.innerHTML = `
+    <div class="ai-bubble-avatar">👤</div>
+    <div class="ai-bubble-body">
+      <div class="ai-bubble-content ${isUserArabic ? 'rtl-content' : ''}" ${isUserArabic ? 'dir="rtl"' : ''}>
+        <p>${userText.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>")}</p>
+      </div>
+    </div>
+  `;
+  feed.appendChild(userRow);
+  feed.scrollTop = feed.scrollHeight;
+
+  // 2. Append Assistant Placeholder
+  const asstRow = document.createElement("div");
+  asstRow.className = "ai-bubble-row assistant";
+  asstRow.innerHTML = `
+    <div class="ai-bubble-avatar">🤖</div>
+    <div class="ai-bubble-body">
+      <div class="ai-thinking-box" id="ai-active-thinking">
+        <span class="thinking-dots">💭 تحليل بيانات ناسا لموقعك الفعلي واستشارة الأخصائيين<span>.</span><span>.</span><span>.</span></span>
+      </div>
+      <div class="ai-bubble-content" style="display:none"></div>
+      <div class="ai-bubble-meta" style="display:none">
+        <span class="source-tag">📡 NASA SMAP L4 · NASA POWER · FieldShift</span>
+        <span class="valid-tag">✅ معطيات موثقة</span>
+      </div>
+    </div>
+  `;
+  feed.appendChild(asstRow);
+  feed.scrollTop = feed.scrollHeight;
+
+  const thinkingBox = asstRow.querySelector(".ai-thinking-box");
+  const contentDiv = asstRow.querySelector(".ai-bubble-content");
+  const metaDiv = asstRow.querySelector(".ai-bubble-meta");
+
+  if (sendBtn) sendBtn.disabled = true;
+
+  const payload = {
+    message: userText,
+    location: {
+      name: AppState.location.city,
+      latitude: AppState.location.lat,
+      longitude: AppState.location.lon
+    },
+    year: parseInt(AppState.year) || 2025,
+    mode: "agricultural",
+    language: (langSelect && langSelect.value) ? langSelect.value : "auto"
+  };
+
+  let accumulatedText = "";
+
+  try {
+    const response = await fetch("/api/ai/chat/stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.body) throw new Error("Streaming non supporté");
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+
+    contentDiv.style.display = "block";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n\n");
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data: ")) continue;
+        const jsonStr = trimmed.slice(6).trim();
+        if (jsonStr === "[DONE]") break;
+
+        try {
+          const evt = JSON.parse(jsonStr);
+          if (evt.event === "meta") {
+            if (evt.sources_used && evt.sources_used.length > 0) {
+              const srcTag = metaDiv.querySelector(".source-tag");
+              if (srcTag) srcTag.textContent = `📡 ${evt.sources_used.slice(0, 2).join(' · ')}`;
+            }
+          } else if (evt.event === "delta") {
+            if (thinkingBox && thinkingBox.parentNode) {
+              thinkingBox.remove();
+            }
+            accumulatedText += evt.content || "";
+            const isRespArabic = isArabicScript(accumulatedText);
+            if (isRespArabic) {
+              contentDiv.classList.add("rtl-content");
+              contentDiv.setAttribute("dir", "rtl");
+            }
+            contentDiv.innerHTML = formatAiMarkdown(accumulatedText) + '<span class="ai-cursor"></span>';
+            feed.scrollTop = feed.scrollHeight;
+          } else if (evt.event === "done") {
+            const cursor = contentDiv.querySelector(".ai-cursor");
+            if (cursor) cursor.remove();
+            metaDiv.style.display = "flex";
+          }
+        } catch (parseErr) {
+          console.warn("SSE parse error:", parseErr);
+        }
+      }
+    }
+
+    const finalCursor = contentDiv.querySelector(".ai-cursor");
+    if (finalCursor) finalCursor.remove();
+    metaDiv.style.display = "flex";
+
+  } catch (streamErr) {
+    console.warn("Streaming error, trying sync fallback:", streamErr);
+    try {
+      const syncRes = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const syncData = await syncRes.json();
+      if (thinkingBox && thinkingBox.parentNode) thinkingBox.remove();
+      contentDiv.style.display = "block";
+      accumulatedText = syncData.reply || "Réponse non disponible";
+      const isRespArabic = isArabicScript(accumulatedText);
+      if (isRespArabic) {
+        contentDiv.classList.add("rtl-content");
+        contentDiv.setAttribute("dir", "rtl");
+      }
+      contentDiv.innerHTML = formatAiMarkdown(accumulatedText);
+      metaDiv.style.display = "flex";
+    } catch (fallbackErr) {
+      if (thinkingBox && thinkingBox.parentNode) thinkingBox.remove();
+      contentDiv.style.display = "block";
+      contentDiv.innerHTML = `<p style="color:#b91c1c">⚠️ تعذر الاتصال بالذكاء الاصطناعي: ${fallbackErr.message}</p>`;
+    }
+  } finally {
+    if (sendBtn) sendBtn.disabled = false;
+    feed.scrollTop = feed.scrollHeight;
+  }
+}
+

@@ -13,9 +13,16 @@ from fastapi.staticfiles import StaticFiles
 
 from app import __version__
 from app.api.agro import router as agro_router
+from app.api.ai import router as ai_router
 from app.api.catalogue import router as catalogue_router
 from app.api.climate import router as climate_router
-from app.api.deps import build_climate_service, build_http_client, build_smap_service, build_smap_gee_service
+from app.api.deps import (
+    build_ai_service,
+    build_climate_service,
+    build_http_client,
+    build_smap_service,
+    build_smap_gee_service,
+)
 from app.api.smap import router as smap_router
 from app.api.smap_gee import router as smap_gee_router
 from app.core.config import get_settings
@@ -49,7 +56,8 @@ async def lifespan(app: FastAPI):
     app.state.climate_service = build_climate_service(settings, client)
     app.state.smap_service = build_smap_service(settings, client)
     app.state.smap_gee_service = build_smap_gee_service(settings, client)
-    logger.info("NASA POWER climate service ready")
+    app.state.ai_service = build_ai_service(settings, app.state.climate_service, app.state.smap_gee_service)
+    logger.info("NASA POWER climate service & NVIDIA Nemotron ready")
     try:
         yield
     finally:
@@ -107,6 +115,7 @@ app.include_router(smap_router)
 app.include_router(catalogue_router)
 app.include_router(agro_router)
 app.include_router(smap_gee_router)
+app.include_router(ai_router)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 

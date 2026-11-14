@@ -18,9 +18,9 @@
   "start_date": "2021-01-01",
   "end_date": "2021-12-31",
   "spatial_scale_m": 11000,
-  "retrieved_at": "2026-11-14T13:24:38.556196Z",
+  "retrieved_at": "2026-11-14T13:57:29.643575Z",
   "cached": false,
-  "processing_time_ms": 26212.7,
+  "processing_time_ms": 61554.2,
   "summary_cards": [
     {
       "id": "sm_surface",

@@ -6,12 +6,57 @@ import httpx
 from fastapi import Request
 
 from app.core.config import Settings, get_settings
+from app.services.agri_simulation import AgriSimulationService
+from app.services.ai_context import AiContextBuilder
+from app.services.ai_nemotron import NvidiaNemotronService
 from app.services.cache import FileCache
 from app.services.climate_service import ClimateDataService
 from app.services.geocoding import GeocodingService
 from app.services.nasa_power import NasaPowerClient
 from app.services.smap import SmapService
 from app.services.smap_gee import SmapGeeService
+
+
+def build_ai_service(
+    settings: Settings,
+    climate_service: ClimateDataService,
+    smap_gee_service: SmapGeeService,
+) -> NvidiaNemotronService:
+    context_builder = AiContextBuilder(climate_service, smap_gee_service)
+    return NvidiaNemotronService(settings, context_builder)
+
+
+def get_ai_service(request: Request) -> NvidiaNemotronService:
+    service = getattr(request.app.state, "ai_service", None)
+    if service is None:
+        settings = get_app_settings(request)
+        http_client = getattr(request.app.state, "http_client", None) or build_http_client(settings)
+        climate = getattr(request.app.state, "climate_service", None) or build_climate_service(settings, http_client)
+        smap_gee = getattr(request.app.state, "smap_gee_service", None) or build_smap_gee_service(settings, http_client)
+        service = build_ai_service(settings, climate, smap_gee)
+        request.app.state.ai_service = service
+    return service
+
+
+def build_simulation_service(
+    settings: Settings,
+    climate_service: ClimateDataService,
+    smap_gee_service: SmapGeeService,
+) -> AgriSimulationService:
+    context_builder = AiContextBuilder(climate_service, smap_gee_service)
+    return AgriSimulationService(context_builder)
+
+
+def get_simulation_service(request: Request) -> AgriSimulationService:
+    service = getattr(request.app.state, "simulation_service", None)
+    if service is None:
+        settings = get_app_settings(request)
+        http_client = getattr(request.app.state, "http_client", None) or build_http_client(settings)
+        climate = getattr(request.app.state, "climate_service", None) or build_climate_service(settings, http_client)
+        smap_gee = getattr(request.app.state, "smap_gee_service", None) or build_smap_gee_service(settings, http_client)
+        service = build_simulation_service(settings, climate, smap_gee)
+        request.app.state.simulation_service = service
+    return service
 
 
 def build_climate_service(settings: Settings, http_client: httpx.AsyncClient) -> ClimateDataService:

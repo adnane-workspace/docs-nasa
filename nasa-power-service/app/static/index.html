@@ -99,39 +99,30 @@
          ========================================================================= -->
     <section id="smap-view-choice" class="smap-view-page" hidden>
 
-      <!-- Location Card -->
+      <!-- Location Card (100% Dynamique : Position Actuelle de l'Utilisateur) -->
       <div class="choice-location-card">
         <div class="choice-card-header">
           <div class="location-current-display">
             <span class="loc-pin-icon">📍</span>
             <div>
               <span class="loc-label">Votre Localisation d'Analyse :</span>
-              <h3 id="choice-display-city">Tanger, Maroc</h3>
-              <span class="loc-coords" id="choice-display-coords">Coordonnées : 35.7687°N, -5.8139°W (EASE-Grid 2.0 ~9-11 km)</span>
+              <h3 id="choice-display-city">Position Actuelle Détectée</h3>
+              <span class="loc-coords" id="choice-display-coords">Coordonnées GPS réelles (EASE-Grid 2.0 ~9-11 km)</span>
             </div>
           </div>
           <div class="location-quick-actions">
-            <button type="button" id="choice-btn-gps" class="btn-gps-action">
+            <button type="button" id="choice-btn-gps" class="btn-gps-action active-gps">
               <span class="gps-pulse"></span>
-              <span>📍 Détecter ma position GPS</span>
+              <span>📍 Détecter / Réactualiser Ma Position Actuelle (GPS)</span>
             </button>
           </div>
         </div>
 
-        <!-- Quick Presets & City Search -->
+        <!-- Search Bar & Year -->
         <div class="choice-location-controls">
-          <div class="quick-chips-row">
-            <span class="chips-label">Exemples rapides :</span>
-            <button type="button" class="city-chip active" data-city="Tanger, Morocco" data-lat="35.7687" data-lon="-5.8139">🇲🇦 Tanger (35.77, -5.81)</button>
-            <button type="button" class="city-chip" data-city="Meknes, Morocco" data-lat="33.8900" data-lon="-5.5500">🇲🇦 Meknès (33.89, -5.55)</button>
-            <button type="button" class="city-chip" data-city="Sidi Slimane, Gharb" data-lat="34.3000" data-lon="-5.9000">🇲🇦 Gharb (34.30, -5.90)</button>
-            <button type="button" class="city-chip" data-city="Beni Mellal, Tadla" data-lat="32.4000" data-lon="-6.5000">🇲🇦 Tadla (32.40, -6.50)</button>
-            <button type="button" class="city-chip" data-city="Taroudant, Souss" data-lat="30.4000" data-lon="-9.1000">🇲🇦 Souss (30.40, -9.10)</button>
-          </div>
-
           <div class="choice-search-row">
             <div class="search-input-group">
-              <input type="text" id="choice-search-city" placeholder="Ou recherchez une ville (ex: Casablanca, Fès, Rabat, Oujda, Nador)..." autocomplete="off">
+              <input type="text" id="choice-search-city" placeholder="Ou recherchez une commune, ville ou coordonnées GPS personnalisées..." autocomplete="off">
               <button type="button" id="choice-btn-search" class="btn-search-city">Rechercher 🔍</button>
             </div>
             <div class="choice-year-group">
@@ -155,11 +146,11 @@
       <!-- Mode Selection Header -->
       <div class="choice-modes-header">
         <h3>Choisissez votre Mode d'Analyse</h3>
-        <p>Chaque mode dispose de sa propre page dédiée pour une expérience claire et sans encombrement.</p>
+        <p>Trois espaces dédiés et sans encombrement, selon vos objectifs opérationnels.</p>
       </div>
 
-      <!-- The 2 Big Mode Cards -->
-      <div class="choice-modes-grid">
+      <!-- The 3 Mode Cards -->
+      <div class="choice-modes-grid three-modes">
 
         <!-- BOUTON 1 : MODE AGRICOLE -->
         <div class="mode-choice-card mode-agri-card" id="card-agri-selection">
@@ -213,6 +204,32 @@
           </button>
         </div>
 
+        <!-- BOUTON 3 : MODE CONSEILLER IA & PLAN D'ACTION (شنو تزرع + خطة المختبر) -->
+        <div class="mode-choice-card mode-ai-card" id="card-ai-selection">
+          <div class="mode-card-badge ai">🤖 Intelligence Artificielle & Plan Labo</div>
+          <div class="mode-card-header">
+            <div class="mode-icon-circle ai">🤖</div>
+            <div class="mode-title-block">
+              <h4>Conseiller IA & Plan d'Action</h4>
+              <span class="mode-var-count">NVIDIA Nemotron 120B</span>
+            </div>
+          </div>
+          <p class="mode-desc">
+            Diagnostic intelligent pour votre sol : <strong>شنو تزرع</strong> (cultures adaptées, semis, irrigation) et génération immédiate du <strong>plan d'action laboratoire</strong>.
+          </p>
+          <ul class="mode-feature-list">
+            <li>🌾 <strong>شنو تزرع :</strong> Recommandations selon l'eau utile et la météo réelle</li>
+            <li>🧪 <strong>Plan Laboratoire :</strong> Protocole d'échantillonnage de sol (NPK, pH, salinité)</li>
+            <li>💧 <strong>Gestion de l'irrigation :</strong> Calcul du stress hydrique et calendrier</li>
+            <li>🇲🇦 <strong>Dialogue en Darija :</strong> Réponses intelligentes complètes en pleine page</li>
+            <li>🛡️ <strong>Garde-fou scientifique :</strong> Zéro chiffre inventé, indexé 100% NASA</li>
+          </ul>
+          <button type="button" id="btn-choose-ai" class="btn-open-mode ai">
+            <span>🤖 Ouvrir le Conseiller IA & Plan Labo</span>
+            <span class="arrow-icon">➔</span>
+          </button>
+        </div>
+
       </div>
 
       <div class="choice-footer-back">
@@ -232,11 +249,11 @@
       <div class="mode-top-bar agri-bar">
         <div class="bar-left">
           <button type="button" class="btn-bar-back" id="btn-back-from-agri">
-            <span>⬅ Changer de mode / Ville</span>
+            <span>⬅ Changer de mode / Localisation</span>
           </button>
           <div class="bar-location-badge">
             <span class="badge-dot agri"></span>
-            <span id="agri-current-loc">📍 Tanger, Maroc</span>
+            <span id="agri-current-loc">📍 Ma Position Actuelle</span>
           </div>
         </div>
         <div class="bar-right">
@@ -250,8 +267,11 @@
               <option value="2021">2021</option>
             </select>
           </div>
+          <button type="button" class="btn-switch-direct" id="btn-switch-agri-to-ai">
+            <span>🤖 Conseiller IA & Plan Labo</span>
+          </button>
           <button type="button" class="btn-switch-direct" id="btn-switch-to-sci">
-            <span>🔬 Passer au Mode Scientifique (46)</span>
+            <span>🔬 Mode Scientifique (46)</span>
           </button>
         </div>
       </div>
@@ -382,11 +402,11 @@
       <div class="mode-top-bar sci-bar">
         <div class="bar-left">
           <button type="button" class="btn-bar-back" id="btn-back-from-sci">
-            <span>⬅ Changer de mode / Ville</span>
+            <span>⬅ Changer de mode / Localisation</span>
           </button>
           <div class="bar-location-badge">
             <span class="badge-dot sci"></span>
-            <span id="sci-current-loc">📍 Tanger, Maroc</span>
+            <span id="sci-current-loc">📍 Ma Position Actuelle</span>
           </div>
         </div>
         <div class="bar-right">
@@ -400,8 +420,11 @@
               <option value="2021">2021</option>
             </select>
           </div>
+          <button type="button" class="btn-switch-direct" id="btn-switch-sci-to-ai">
+            <span>🤖 Conseiller IA & Plan Labo</span>
+          </button>
           <button type="button" class="btn-switch-direct" id="btn-switch-to-agri">
-            <span>🌾 Passer au Mode Agricole (16)</span>
+            <span>🌾 Mode Agricole (16)</span>
           </button>
         </div>
       </div>
@@ -506,6 +529,407 @@
           </table>
         </div>
         <p class="table-footer-hint">💡 Cliquez sur n'importe quelle cellule pour ouvrir l'explication scientifique en Darija.</p>
+      </div>
+
+    </section>
+
+    <!-- =========================================================================
+         PAGE / VUE 5 : PAGE DÉDIÉE : MODE CONSEILLER IA & PLAN D'ACTION (Page 3)
+         ========================================================================= -->
+    <section id="smap-view-ai" class="smap-view-page" hidden>
+
+      <!-- Clean Top Navigation Bar -->
+      <div class="mode-top-bar ai-bar">
+        <div class="bar-left">
+          <button type="button" class="btn-bar-back" id="btn-back-from-ai">
+            <span>⬅ Changer de mode / Localisation</span>
+          </button>
+          <div class="bar-location-badge">
+            <span class="badge-dot ai"></span>
+            <span id="ai-page-current-loc">📍 Ma Position Actuelle</span>
+          </div>
+        </div>
+        <div class="bar-right">
+          <div class="bar-year-selector">
+            <label for="ai-page-year-select">Année :</label>
+            <select id="ai-page-year-select">
+              <option value="2025" selected>2025</option>
+              <option value="2024">2024</option>
+              <option value="2023">2023</option>
+              <option value="2022">2022</option>
+              <option value="2021">2021</option>
+            </select>
+          </div>
+          <button type="button" class="btn-switch-direct" id="btn-switch-ai-to-agri">
+            <span>🌾 Mode Agricole (16)</span>
+          </button>
+          <button type="button" class="btn-switch-direct" id="btn-switch-ai-to-sci">
+            <span>🔬 Mode Scientifique (46)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Status strip -->
+      <div class="view-status-strip ai-strip">
+        <span class="strip-item status-ok">✅ Conseiller IA Actif</span>
+        <span class="strip-item">🤖 NVIDIA Nemotron 120B Super</span>
+        <span class="strip-item" id="ai-strip-city">📍 Position Réelle</span>
+        <span class="strip-item strip-darija-hint">💡 تحليل ذكي مبني 100% على بيانات NASA الرسمية</span>
+      </div>
+
+      <!-- =====================================================================
+           VIRTUAL AGRICULTURAL LABORATORY (المختبر الزراعي الافتراضي المحاكي للمستقبل)
+           ===================================================================== -->
+      <div class="virtual-lab-wrapper">
+
+        <!-- FARMER SIMULATION CONTROL PANEL -->
+        <div class="farmer-sim-control-panel">
+          <div class="sim-panel-header">
+            <div class="sim-badge-lab">
+              <span class="sim-flask-icon">🧪</span>
+              <span>المختبر الزراعي الافتراضي المحاكي للمستقبل · FieldShift Virtual Twin Lab</span>
+            </div>
+            <h3>محاكاة القرارات الزراعية واختبار الصمود بالتوأم الرقمي لمعطيات NASA</h3>
+            <p>أدخل مواصفات أرضك ومواردك وجرب خطط الدورة الزراعية رقمياً قبل ما تخاطر بأرضك فالميدان</p>
+          </div>
+
+          <form id="sim-config-form" class="sim-config-form">
+            <div class="sim-form-grid">
+              <!-- Field 1: Soil Type -->
+              <div class="sim-form-field">
+                <label for="sim-soil-select">
+                  <span>🌱 نوع التربة :</span>
+                  <small id="sim-soil-hint">حمري / تيرس / رملية / كلسية</small>
+                </label>
+                <select id="sim-soil-select" class="sim-select">
+                  <option value="limoneux_profond" selected>حمري (Hamri - طيني خصب)</option>
+                  <option value="argileux_lourd">تيرس (Tirs / Vertisol - أسود ثقيل خصب)</option>
+                  <option value="sableux">رملية (Sableux - خفيفة نفاذة)</option>
+                  <option value="calcaire">كلسية بيضاء (Calcaire - أراضي الكلس)</option>
+                </select>
+              </div>
+
+              <!-- Field 2: Water Access -->
+              <div class="sim-form-field">
+                <label for="sim-water-select">
+                  <span>💧 كمية الماء والري المتوفر :</span>
+                  <small id="sim-water-hint">بور / ري تكميلي / سقي متوفر</small>
+                </label>
+                <select id="sim-water-select" class="sim-select">
+                  <option value="bour">بور كامل (100% Bour - أمطار الشتا فقط)</option>
+                  <option value="appoint" selected>ري تكميلي (Appoint 60-90 mm فالتزهير)</option>
+                  <option value="irrigue">سقي متوفر / بئر (Irrigation intégrale)</option>
+                </select>
+              </div>
+
+              <!-- Field 3: Budget Tier -->
+              <div class="sim-form-field">
+                <label for="sim-budget-select">
+                  <span>💰 الميزانية والاستثمار :</span>
+                  <small id="sim-budget-hint">اقتصادية / متوسطة / مرتفعة</small>
+                </label>
+                <select id="sim-budget-select" class="sim-select">
+                  <option value="faible">اقتصادية (مدخلات منخفضة وتكلفة محدودة)</option>
+                  <option value="moyen" selected>متوسطة (تسميد متوازن ومبيدات معتدلة)</option>
+                  <option value="eleve">استثمار حر (تكثيف إنتاجي وأسمدة كاملة)</option>
+                </select>
+              </div>
+
+              <!-- Field 4: Time Machine Reference Year -->
+              <div class="sim-form-field">
+                <label for="sim-ref-year-select">
+                  <span>⏳ سنة آلة الزمن للمقارنة :</span>
+                  <small id="sim-year-hint">سنة تاريخية للمحاكاة العكسية</small>
+                </label>
+                <select id="sim-ref-year-select" class="sim-select">
+                  <option value="2023" selected>2023 (سنة جفاف تاريخية حقيقية)</option>
+                  <option value="2024">2024 (سنة متقلبة)</option>
+                  <option value="2022">2022 (شتا متأخرة)</option>
+                  <option value="2021">2021 (موسم ماطر)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="sim-form-action-row">
+              <button type="submit" id="btn-run-simulation" class="btn-run-sim">
+                <span class="sim-run-icon">🚀</span>
+                <span>تشغيل محاكاة المختبر الافتراضي (Lancer le Laboratoire Virtuel)</span>
+              </button>
+              <span id="sim-run-status" class="sim-status-label" hidden>⏳ جاري الحساب الفيزيائي والزراعي بمعطيات NASA...</span>
+            </div>
+          </form>
+        </div>
+
+        <!-- LAB NAVIGATION TABS (THE 4 LABS) -->
+        <div class="sim-sub-tabs" role="tablist">
+          <button type="button" class="sim-tab-btn active" data-simtab="tab-crop-battle" role="tab" aria-selected="true">
+            <span class="sim-tab-badge">Lab 1</span>
+            <span class="sim-tab-icon">⚔️</span>
+            <span class="sim-tab-title">Crop Battle Lab</span>
+            <small class="sim-tab-sub">مقارنة 3 خطط زراعية</small>
+          </button>
+          <button type="button" class="sim-tab-btn" data-simtab="tab-climate-attack" role="tab" aria-selected="false">
+            <span class="sim-tab-badge">Lab 2</span>
+            <span class="sim-tab-icon">🌪️</span>
+            <span class="sim-tab-title">Climate Attack Lab</span>
+            <small class="sim-tab-sub">اختبار صدمات المناخ</small>
+          </button>
+          <button type="button" class="sim-tab-btn" data-simtab="tab-time-machine" role="tab" aria-selected="false">
+            <span class="sim-tab-badge">Lab 3</span>
+            <span class="sim-tab-icon">⏳</span>
+            <span class="sim-tab-title">Farm Time Machine</span>
+            <small class="sim-tab-sub">آلة الزمن الفلاحية</small>
+          </button>
+          <button type="button" class="sim-tab-btn" data-simtab="tab-scientific-tribunal" role="tab" aria-selected="false">
+            <span class="sim-tab-badge">Lab 4</span>
+            <span class="sim-tab-icon">⚖️</span>
+            <span class="sim-tab-title">AI Scientific Tribunal</span>
+            <small class="sim-tab-sub">المحكمة العلمية والتدقيق</small>
+          </button>
+        </div>
+
+        <!-- LAB 1: CROP BATTLE LAB -->
+        <div id="tab-crop-battle" class="sim-tab-panel active" role="tabpanel">
+          <!-- Top Recommendation Banner (شنو تزرع والخطة الفائزة) -->
+          <div class="battle-winner-banner" id="battle-winner-banner">
+            <div class="winner-trophy">🏆</div>
+            <div class="winner-text-block">
+              <span class="winner-tag">توصية المستشار الذكي والفيزياء الزراعية :</span>
+              <h3 id="battle-winner-title">الخطة 2 : دورة ثلاثية متوازنة (قمح - قطاني/عدس - شعير)</h3>
+              <p id="battle-winner-desc">أعلى صمود ضد الجفاف وتوفير في ماء الري ومصاريف التسميد بناءً على معطيات حقلك الفعلية.</p>
+            </div>
+            <div class="winner-resilience-badge">
+              <span class="resilience-num" id="battle-winner-score">88</span>
+              <span class="resilience-denom">/100</span>
+              <span class="resilience-lbl">مؤشر الصمود</span>
+            </div>
+          </div>
+
+          <!-- Radar Chart & Battle Cards Grid -->
+          <div class="battle-main-grid">
+            <!-- Left: Radar Chart Panel -->
+            <div class="battle-radar-panel">
+              <div class="radar-card-header">
+                <div>
+                  <h4>🕸️ مخطط الرادار للمقارنة الخماسية بين الخطط الثلاث</h4>
+                  <p>المحاور الـ 5 : صمود الجفاف · حفظ التربة · ملائمة الميزانية · توفير الماء · استقرار الغلة</p>
+                </div>
+              </div>
+              <div class="radar-chart-container">
+                <canvas id="chart-sim-radar"></canvas>
+              </div>
+              <div class="radar-legend-strip">
+                <span class="radar-legend-item"><span class="legend-color-dot plan1"></span> الخطة 1: القمح كل عام</span>
+                <span class="radar-legend-item"><span class="legend-color-dot plan2"></span> الخطة 2: قمح-عدس-شعير</span>
+                <span class="radar-legend-item"><span class="legend-color-dot plan3"></span> الخطة 3: نظام بيئي وغطاء</span>
+              </div>
+            </div>
+
+            <!-- Right: 3 Plan Scorecards -->
+            <div class="battle-plans-column" id="battle-plans-cards">
+              <!-- Dynamically populated 3 Plan Scorecards -->
+            </div>
+          </div>
+        </div>
+
+        <!-- LAB 2: CLIMATE ATTACK LAB -->
+        <div id="tab-climate-attack" class="sim-tab-panel" role="tabpanel" hidden>
+          <div class="climate-attack-panel">
+            <div class="attack-header">
+              <div class="attack-header-title">
+                <span class="attack-icon">🌪️</span>
+                <div>
+                  <h3>مختبر اختبار الصدمات المناخية القصوى (Climate Stress Testing)</h3>
+                  <p>اختر صدمة مناخية وشوف مباشرة كيفاش كتغير مقاومة كل خطة ونسبة الإجهاد المائي الحقيقي</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4 Interactive Shock Buttons -->
+            <div class="shock-buttons-grid">
+              <button type="button" class="shock-btn active" data-shock="none">
+                <span class="shock-btn-icon">☀️</span>
+                <div class="shock-btn-text">
+                  <strong>مناخ عادي مسجل</strong>
+                  <small>الظروف الطبيعية لسنة الرصد</small>
+                </div>
+                <span class="shock-active-indicator">نشط</span>
+              </button>
+
+              <button type="button" class="shock-btn" data-shock="drought">
+                <span class="shock-btn-icon">🌵</span>
+                <div class="shock-btn-text">
+                  <strong>جفاف حاد (-40% تساقطات)</strong>
+                  <small>نقص شديد فكميات الأمطار</small>
+                </div>
+                <span class="shock-active-indicator">نشط</span>
+              </button>
+
+              <button type="button" class="shock-btn" data-shock="heatwave">
+                <span class="shock-btn-icon">🔥</span>
+                <div class="shock-btn-text">
+                  <strong>موجة حرارة وشرقي (+4°C)</strong>
+                  <small>تبخر قياسي ففترة تزهير الحبوب</small>
+                </div>
+                <span class="shock-active-indicator">نشط</span>
+              </button>
+
+              <button type="button" class="shock-btn" data-shock="delayed_rain">
+                <span class="shock-btn-icon">⏳</span>
+                <div class="shock-btn-text">
+                  <strong>تأخر أمطار الخريف (-55%)</strong>
+                  <small>جفاف مهد البذر أكتوبر-دجنبر</small>
+                </div>
+                <span class="shock-active-indicator">نشط</span>
+              </button>
+            </div>
+
+            <!-- Shock Reaction Banner -->
+            <div class="shock-impact-summary" id="shock-impact-summary">
+              <!-- Dynamic shock impact info -->
+            </div>
+
+            <!-- Shock Comparison Cards -->
+            <div class="shock-cards-grid" id="shock-cards-grid">
+              <!-- Dynamic reaction cards for the 3 plans under active shock -->
+            </div>
+          </div>
+        </div>
+
+        <!-- LAB 3: FARM TIME MACHINE -->
+        <div id="tab-time-machine" class="sim-tab-panel" role="tabpanel" hidden>
+          <div class="time-machine-panel">
+            <div class="tm-header">
+              <div class="tm-header-title">
+                <span class="tm-icon">⏳</span>
+                <div>
+                  <h3>آلة الزمن الفلاحية (Farm Time Machine : Simulation Rétrospective)</h3>
+                  <p>الرجوع للسنوات السابقة ومقارنة ما حدث فعلاً مع ما كان يمكن أن يحدث لو طبقت خطة مختلفة</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="tm-content-container" id="tm-content-container">
+              <!-- Dynamically populated time machine counterfactual metrics -->
+            </div>
+          </div>
+        </div>
+
+        <!-- LAB 4: AI SCIENTIFIC TRIBUNAL -->
+        <div id="tab-scientific-tribunal" class="sim-tab-panel" role="tabpanel" hidden>
+          <div class="tribunal-panel">
+            <div class="tribunal-header">
+              <div class="tribunal-header-title">
+                <span class="tribunal-gavel">⚖️</span>
+                <div>
+                  <h3>المحكمة العلمية الفلاحية (AI Scientific Tribunal)</h3>
+                  <p>مداولات هيئة الخبراء الافتراضيين الأربعة والتدقيق الصارم لمنع أي أرقام مخترعة</p>
+                </div>
+              </div>
+              <div class="tribunal-seal">
+                <span>🛡️ 100% NASA Grounded</span>
+                <small>صفر هلوسة أو تخمين</small>
+              </div>
+            </div>
+
+            <!-- 4 Expert Agent Cards -->
+            <div class="tribunal-agents-grid" id="tribunal-agents-grid">
+              <!-- Dynamically populated 4 expert agent verdicts -->
+            </div>
+
+            <!-- Supreme Synthesis Box -->
+            <div class="tribunal-supreme-box" id="tribunal-supreme-box">
+              <!-- Supreme synthesis verdict in Moroccan Darija -->
+            </div>
+          </div>
+        </div>
+
+        <!-- OPTIONAL SOIL PHYSICAL SAMPLING PROTOCOL DRAWER -->
+        <div class="soil-protocol-accordion">
+          <button type="button" class="btn-toggle-protocol" id="btn-toggle-protocol">
+            <span>🧪 عرض بروتوكول أخذ عينات التربة الميداني للمختبر (Protocole d'Échantillonnage Sol)</span>
+            <span class="accordion-arrow" id="protocol-arrow">▼</span>
+          </button>
+          <div id="protocol-accordion-content" class="protocol-accordion-content" hidden>
+            <div class="lab-intro-box">
+              <p>
+                ⚠️ <strong>تنبيه علمي :</strong> القمر الاصطناعي SMAP كيعطي صورة شمولية على مساحة تقريبية (9-11 كلم). قبل ما تدير استثمار كبير، خاصك تاخد عينات من الأرض وترسلها للمختبر للتأكد من الملوحة، الـ pH، ومستويات الآزوت والفوسفور والبوتاس (NPK).
+              </p>
+            </div>
+            <div id="lab-plan-output" class="lab-plan-container"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- FULL-PAGE INTERACTIVE NEMOTRON AI DIALOGUE -->
+      <div class="ai-dialogue-panel">
+        <div class="ai-dialogue-header">
+          <div class="dialogue-header-title">
+            <span class="robot-glow">🤖</span>
+            <div>
+              <h3>المحادثة الذكية المباشرة مع Nemotron AI 120B</h3>
+              <p>Posez vos questions agronomiques précises sur votre parcelle en الدارجة المغربية, Français ou English</p>
+            </div>
+          </div>
+          <div class="ai-specialists-chips">
+            <span class="spec-chip">👨‍🌾 خبير زراعي مغربي</span>
+            <span class="spec-chip">🛰️ أخصائي SMAP</span>
+            <span class="spec-chip">🌦️ مناخ NASA POWER</span>
+            <span class="spec-chip">🛡️ تدقيق علمي</span>
+          </div>
+        </div>
+
+        <!-- Quick Questions Chips -->
+        <div class="ai-page-prompt-chips" id="ai-page-prompt-chips">
+          <button type="button" class="ai-prompt-chip" data-prompt="واش رطوبة التربة فموقعي الحالي كافية لزراعة الحبوب وشنو هي النصائح ديالك؟">🌾 واش الرطوبة كافية للحبوب؟</button>
+          <button type="button" class="ai-prompt-chip" data-prompt="Quel est le niveau de stress hydrique et le besoin en irrigation d'appoint pour ma parcelle ?">💧 Stress hydrique & irrigation</button>
+          <button type="button" class="ai-prompt-chip" data-prompt="Explique-moi le bilan hydrique (évapotranspiration vs infiltration) mesuré par satellite pour ma zone">📊 Bilan évapotranspiration vs infiltration</button>
+          <button type="button" class="ai-prompt-chip" data-prompt="واش درجة حرارة التربة مناسبة لفترة البذر ومكاينش خطر الصقيع؟">🌡️ حرارة التربة وموعد البذر</button>
+          <button type="button" class="ai-prompt-chip" data-prompt="Quelles sont les limites scientifiques des mesures satellites (~9-11 km) et pourquoi faut-il le laboratoire ?">⚠️ Limites satellites & rôle du labo</button>
+        </div>
+
+        <!-- Messages Feed -->
+        <div class="ai-page-messages-feed" id="ai-page-messages">
+          <div class="ai-bubble-row assistant">
+            <div class="ai-bubble-avatar">🤖</div>
+            <div class="ai-bubble-body">
+              <div class="ai-bubble-content rtl-content" dir="rtl">
+                <p><strong>مرحباً بيك فـ المستشار الذكي FieldShift Nemotron AI! 👋</strong></p>
+                <p>أنا متصل مباشرة ببيانات الأقمار الاصطناعية لوكالة <strong>NASA</strong> لموقعك الفعلي. فوق هاد الصفحة كاين تقرير فوري على <strong>شنو تزرع</strong> وبوتون لإطلاق <strong>خطة المختبر</strong>.</p>
+                <p>تقدر تسولني دابا على أي تفصيل فلاحي وغادي نجاوبك بنموذج <strong>NVIDIA Nemotron 120B Super</strong> وبأرقام ناسا الحقيقية!</p>
+              </div>
+              <div class="ai-bubble-meta">
+                <span class="source-tag">📡 NASA SMAP L4 · NASA POWER · FieldShift Agro</span>
+                <span class="valid-tag">✅ معطيات موثقة</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Input Form -->
+        <form id="ai-page-chat-form" class="ai-page-input-form">
+          <div class="ai-input-controls">
+            <div class="ai-lang-selector">
+              <label for="ai-page-lang-select" class="sr-only">Langue</label>
+              <select id="ai-page-lang-select" title="Choix de langue">
+                <option value="auto" selected>🌐 Auto</option>
+                <option value="darija">🇲🇦 الدارجة</option>
+                <option value="fr">🇫🇷 Français</option>
+                <option value="en">🇬🇧 English</option>
+              </select>
+            </div>
+            <textarea id="ai-page-input-text" rows="1" placeholder="سول بالدارجة، posez votre question en français or English..." required></textarea>
+            <button type="submit" id="btn-ai-page-send" class="btn-ai-send" title="Envoyer">
+              <span>Envoyer</span>
+              <span class="send-icon">➔</span>
+            </button>
+          </div>
+          <div class="ai-input-disclaimer">
+            <span>🔒 إجابات مستندة حصرياً إلى قياسات أقمار NASA الاصطناعية لموقعك الفعلي · لا توجد أرقام مخترعة</span>
+          </div>
+        </form>
+
       </div>
 
     </section>

@@ -73,6 +73,12 @@ class Settings(BaseSettings):
     smap_gee_3hourly_max_days: int = 31
     smap_gee_earliest_date: date = date(2015, 3, 31)
 
+    # NVIDIA Nemotron AI Integration
+    nvidia_api_key: str = Field(default="")
+    nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
+    nvidia_model: str = "nvidia/nemotron-3.5-super-vl-120b-a12b"
+    nvidia_timeout_seconds: float = 60.0
+
     cache_dir: Path = Path("data")
     hot_day_threshold_c: float = 30.0
     cold_day_threshold_c: float = 5.0
