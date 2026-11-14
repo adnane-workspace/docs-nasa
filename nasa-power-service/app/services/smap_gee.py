@@ -340,8 +340,8 @@ class SmapGeeService:
         # Compute annual summary
         annual_summary = self._compute_annual_summary(monthly_series, band_names)
 
-        # Compute summary cards
-        summary_cards = self._compute_summary_cards(monthly_series, location.name or "Meknes")
+        # Compute summary cards for all requested variables in this mode
+        summary_cards = self._compute_summary_cards(monthly_series, location.name or "Meknes", band_names=band_names)
 
         # 3-hourly series if requested and small range
         three_hourly_series = None
@@ -534,6 +534,7 @@ class SmapGeeService:
         self,
         series: list[MonthlyObservationPoint],
         location_name: str,
+        band_names: list[str] | None = None,
     ) -> list[SummaryCard]:
         if not series:
             return []
@@ -544,24 +545,19 @@ class SmapGeeService:
         period_str = f"{latest.month_name} {latest.year}"
 
         cards: list[SummaryCard] = []
-
-        card_defs = [
-            ("sm_surface", "Surface Soil Moisture", "soil_moisture", "optimal"),
-            ("sm_rootzone", "Root Zone Soil Moisture", "soil_moisture", "optimal"),
-            ("sm_profile", "Profile Soil Moisture", "soil_moisture", "info"),
-            ("sm_surface_wetness", "Surface Wetness", "soil_wetness", "normal"),
-            ("sm_rootzone_pctl", "Drought Percentile", "anomalies_and_drought", "warning"),
-            ("soil_temp_layer1", "Seedbed Temperature", "soil_temperature", "normal"),
-            ("land_evapotranspiration_flux", "Evapotranspiration (ET)", "water_fluxes", "normal"),
-            ("soil_water_infiltration_flux", "Water Infiltration", "water_fluxes", "normal"),
-            ("overland_runoff_flux", "Surface Runoff", "water_fluxes", "warning"),
-            ("land_fraction_wilting", "Wilting Area Risk", "land_fractions", "critical"),
+        target_vars = band_names if band_names else [
+            "sm_surface", "sm_rootzone", "sm_profile", "sm_surface_wetness",
+            "sm_rootzone_pctl", "soil_temp_layer1", "land_evapotranspiration_flux",
+            "soil_water_infiltration_flux", "overland_runoff_flux", "land_fraction_wilting"
         ]
 
-        for var_id, title, category, default_tone in card_defs:
+        for var_id in target_vars:
             meta = get_variable_metadata(var_id)
             if not meta:
                 continue
+
+            title = meta.name_fr or meta.name_en or var_id
+            category = meta.category or "scientific"
 
             val = latest.display_values.get(var_id)
             prev_val = prev.display_values.get(var_id) if prev else None
@@ -571,7 +567,7 @@ class SmapGeeService:
                 chg_pct = round(((val - prev_val) / abs(prev_val)) * 100.0, 1)
 
             # Determine tone
-            tone = default_tone
+            tone = "normal"
             if val is not None:
                 if var_id == "sm_rootzone":
                     if val < 0.15:
@@ -594,6 +590,8 @@ class SmapGeeService:
                         tone = "warning"
                     else:
                         tone = "optimal"
+                elif meta.is_agricultural:
+                    tone = "optimal"
 
             display_str = f"{val} {meta.display_unit}" if val is not None else "Non disponible"
 

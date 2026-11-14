@@ -24,12 +24,12 @@
   "summary_cards": [
     {
       "id": "sm_surface",
-      "title": "Surface Soil Moisture",
+      "title": "Humidit\u00e9 superficielle du sol (0-5 cm)",
       "category": "soil_moisture",
       "value": 0.2958,
-      "display_value": "0.2958 m³/m³",
-      "display_unit": "m³/m³",
-      "period": "Décembre 2025",
+      "display_value": "0.2958 m\u00b3/m\u00b3",
+      "display_unit": "m\u00b3/m\u00b3",
+      "period": "D\u00e9cembre 2025",
       "source": "NASA SMAP L4",
       "change_vs_previous_month_pct": 42.3,
       "quality_status": "complete",
@@ -37,12 +37,12 @@
     },
     {
       "id": "sm_rootzone",
-      "title": "Root Zone Soil Moisture",
+      "title": "Humidit\u00e9 du sol dans la zone racinaire (0-100 cm)",
       "category": "soil_moisture",
       "value": 0.2992,
-      "display_value": "0.2992 m³/m³",
-      "display_unit": "m³/m³",
-      "period": "Décembre 2025",
+      "display_value": "0.2992 m\u00b3/m\u00b3",
+      "display_unit": "m\u00b3/m\u00b3",
+      "period": "D\u00e9cembre 2025",
       "source": "NASA SMAP L4",
       "change_vs_previous_month_pct": 27.0,
       "quality_status": "complete",
@@ -50,105 +50,183 @@
     },
     {
       "id": "sm_profile",
-      "title": "Profile Soil Moisture",
+      "title": "Humidit\u00e9 du profil du sol (Surface jusqu'\u00e0 la roche-m\u00e8re)",
       "category": "soil_moisture",
       "value": 0.2895,
-      "display_value": "0.2895 m³/m³",
-      "display_unit": "m³/m³",
-      "period": "Décembre 2025",
+      "display_value": "0.2895 m\u00b3/m\u00b3",
+      "display_unit": "m\u00b3/m\u00b3",
+      "period": "D\u00e9cembre 2025",
       "source": "NASA SMAP L4",
       "change_vs_previous_month_pct": 25.9,
       "quality_status": "complete",
-      "status_tone": "info"
+      "status_tone": "optimal"
     },
     {
       "id": "sm_surface_wetness",
-      "title": "Surface Wetness",
+      "title": "Degr\u00e9 de saturation de surface (0-1)",
       "category": "soil_wetness",
       "value": 65.6,
-      "display_value": "65.6 نسبة (0-100%)",
-      "display_unit": "نسبة (0-100%)",
-      "period": "Décembre 2025",
+      "display_value": "65.6 \u0646\u0633\u0628\u0629 (0-100%)",
+      "display_unit": "\u0646\u0633\u0628\u0629 (0-100%)",
+      "period": "D\u00e9cembre 2025",
       "source": "NASA SMAP L4",
       "change_vs_previous_month_pct": 42.3,
       "quality_status": "complete",
-      "status_tone": "normal"
+      "status_tone": "optimal"
+    },
+    {
+      "id": "sm_rootzone_wetness",
+      "title": "Degr\u00e9 de saturation de la zone racinaire (0-1)",
+      "category": "soil_wetness",
+      "value": 66.4,
+      "display_value": "66.4 \u0646\u0633\u0628\u0629 (0-100%)",
+      "display_unit": "\u0646\u0633\u0628\u0629 (0-100%)",
+      "period": "D\u00e9cembre 2025",
+      "source": "NASA SMAP L4",
+      "change_vs_previous_month_pct": 27.2,
+      "quality_status": "complete",
+      "status_tone": "optimal"
     },
     {
       "id": "sm_rootzone_pctl",
-      "title": "Drought Percentile",
+      "title": "Percentile d'humidit\u00e9 de la zone racinaire",
       "category": "anomalies_and_drought",
       "value": 64.861,
       "display_value": "64.861 %",
       "display_unit": "%",
-      "period": "Décembre 2025",
+      "period": "D\u00e9cembre 2025",
       "source": "NASA SMAP L4",
       "change_vs_previous_month_pct": 41.1,
       "quality_status": "complete",
       "status_tone": "optimal"
     },
     {
+      "id": "sm_surface_anomaly",
+      "title": "Anomalie d'humidit\u00e9 de surface",
+      "category": "anomalies_and_drought",
+      "value": 0.073,
+      "display_value": "0.073 m\u00b3/m\u00b3",
+      "display_unit": "m\u00b3/m\u00b3",
+      "period": "D\u00e9cembre 2025",
+      "source": "NASA SMAP L4",
+      "change_vs_previous_month_pct": 204.2,
+      "quality_status": "complete",
+      "status_tone": "optimal"
+    },
+    {
       "id": "soil_temp_layer1",
-      "title": "Seedbed Temperature",
+      "title": "Temp\u00e9rature du sol - Couche 1 (0-10 cm)",
       "category": "soil_temperature",
       "value": 12.23,
-      "display_value": "12.23 °C",
-      "display_unit": "°C",
-      "period": "Décembre 2025",
+      "display_value": "12.23 \u00b0C",
+      "display_unit": "\u00b0C",
+      "period": "D\u00e9cembre 2025",
       "source": "NASA SMAP L4",
       "change_vs_previous_month_pct": -23.0,
       "quality_status": "complete",
-      "status_tone": "normal"
+      "status_tone": "optimal"
+    },
+    {
+      "id": "soil_temp_layer2",
+      "title": "Temp\u00e9rature du sol - Couche 2 (10-20 cm)",
+      "category": "soil_temperature",
+      "value": 13.1,
+      "display_value": "13.1 \u00b0C",
+      "display_unit": "\u00b0C",
+      "period": "D\u00e9cembre 2025",
+      "source": "NASA SMAP L4",
+      "change_vs_previous_month_pct": -22.0,
+      "quality_status": "complete",
+      "status_tone": "optimal"
     },
     {
       "id": "land_evapotranspiration_flux",
-      "title": "Evapotranspiration (ET)",
+      "title": "Flux d'\u00e9vapotranspiration totale",
       "category": "water_fluxes",
       "value": 1.475,
       "display_value": "1.475 mm/jour",
       "display_unit": "mm/jour",
-      "period": "Décembre 2025",
+      "period": "D\u00e9cembre 2025",
       "source": "NASA SMAP L4",
       "change_vs_previous_month_pct": 17.8,
       "quality_status": "complete",
-      "status_tone": "normal"
+      "status_tone": "optimal"
     },
     {
       "id": "soil_water_infiltration_flux",
-      "title": "Water Infiltration",
+      "title": "Flux d'infiltration de l'eau dans le sol",
       "category": "water_fluxes",
       "value": 5.483,
       "display_value": "5.483 mm/jour",
       "display_unit": "mm/jour",
-      "period": "Décembre 2025",
+      "period": "D\u00e9cembre 2025",
       "source": "NASA SMAP L4",
       "change_vs_previous_month_pct": 22.5,
       "quality_status": "complete",
-      "status_tone": "normal"
+      "status_tone": "optimal"
     },
     {
       "id": "overland_runoff_flux",
-      "title": "Surface Runoff",
+      "title": "Flux de ruissellement de surface",
       "category": "water_fluxes",
       "value": 1.587,
       "display_value": "1.587 mm/jour",
       "display_unit": "mm/jour",
-      "period": "Décembre 2025",
+      "period": "D\u00e9cembre 2025",
       "source": "NASA SMAP L4",
       "change_vs_previous_month_pct": 111.6,
       "quality_status": "complete",
-      "status_tone": "warning"
+      "status_tone": "optimal"
+    },
+    {
+      "id": "precipitation_total_surface_flux",
+      "title": "Flux de pr\u00e9cipitations totales en surface",
+      "category": "water_fluxes",
+      "value": 7.425,
+      "display_value": "7.425 mm/jour",
+      "display_unit": "mm/jour",
+      "period": "D\u00e9cembre 2025",
+      "source": "NASA SMAP L4",
+      "change_vs_previous_month_pct": 37.4,
+      "quality_status": "complete",
+      "status_tone": "optimal"
     },
     {
       "id": "land_fraction_wilting",
-      "title": "Wilting Area Risk",
+      "title": "Fraction de surface au point de fl\u00e9trissement",
       "category": "land_fractions",
       "value": 7.2,
-      "display_value": "7.2 نسبة (0-100%)",
-      "display_unit": "نسبة (0-100%)",
-      "period": "Décembre 2025",
+      "display_value": "7.2 \u0646\u0633\u0628\u0629 (0-100%)",
+      "display_unit": "\u0646\u0633\u0628\u0629 (0-100%)",
+      "period": "D\u00e9cembre 2025",
       "source": "NASA SMAP L4",
       "change_vs_previous_month_pct": -82.4,
+      "quality_status": "complete",
+      "status_tone": "optimal"
+    },
+    {
+      "id": "vegetation_greenness_fraction",
+      "title": "Fraction de verdure de la v\u00e9g\u00e9tation",
+      "category": "vegetation",
+      "value": 96.0,
+      "display_value": "96.0 \u0646\u0633\u0628\u0629 (0-100%)",
+      "display_unit": "\u0646\u0633\u0628\u0629 (0-100%)",
+      "period": "D\u00e9cembre 2025",
+      "source": "NASA SMAP L4",
+      "change_vs_previous_month_pct": 0.2,
+      "quality_status": "complete",
+      "status_tone": "optimal"
+    },
+    {
+      "id": "leaf_area_index",
+      "title": "Indice de surface foliaire (LAI)",
+      "category": "vegetation",
+      "value": 1.234,
+      "display_value": "1.234 m\u00b2/m\u00b2",
+      "display_unit": "m\u00b2/m\u00b2",
+      "period": "D\u00e9cembre 2025",
+      "source": "NASA SMAP L4",
+      "change_vs_previous_month_pct": 39.1,
       "quality_status": "complete",
       "status_tone": "optimal"
     }
@@ -203,7 +281,7 @@
       "date": "2025-02-01",
       "year": 2025,
       "month": 2,
-      "month_name": "Février",
+      "month_name": "F\u00e9vrier",
       "observation_count": 224,
       "quality_status": "complete",
       "raw_values": {
@@ -473,7 +551,7 @@
       "date": "2025-08-01",
       "year": 2025,
       "month": 8,
-      "month_name": "Août",
+      "month_name": "Ao\u00fbt",
       "observation_count": 248,
       "quality_status": "complete",
       "raw_values": {
@@ -653,7 +731,7 @@
       "date": "2025-12-01",
       "year": 2025,
       "month": 12,
-      "month_name": "Décembre",
+      "month_name": "D\u00e9cembre",
       "observation_count": 248,
       "quality_status": "complete",
       "raw_values": {
@@ -699,112 +777,112 @@
     {
       "variable_id": "sm_surface",
       "name_en": "Surface Soil Moisture (0-5 cm)",
-      "name_fr": "Humidité superficielle du sol (0-5 cm)",
+      "name_fr": "Humidit\u00e9 superficielle du sol (0-5 cm)",
       "mean": 0.191,
       "min": 0.1122,
       "max": 0.3007,
-      "display_unit": "m³/m³",
+      "display_unit": "m\u00b3/m\u00b3",
       "completeness_pct": 100.0,
-      "seasonal_trend": "Tendance à la baisse"
+      "seasonal_trend": "Tendance \u00e0 la baisse"
     },
     {
       "variable_id": "sm_rootzone",
       "name_en": "Root Zone Soil Moisture (0-100 cm)",
-      "name_fr": "Humidité du sol dans la zone racinaire (0-100 cm)",
+      "name_fr": "Humidit\u00e9 du sol dans la zone racinaire (0-100 cm)",
       "mean": 0.24,
       "min": 0.1817,
       "max": 0.3129,
-      "display_unit": "m³/m³",
+      "display_unit": "m\u00b3/m\u00b3",
       "completeness_pct": 100.0,
-      "seasonal_trend": "Tendance à la baisse"
+      "seasonal_trend": "Tendance \u00e0 la baisse"
     },
     {
       "variable_id": "sm_profile",
       "name_en": "Profile Soil Moisture (Surface to Bedrock)",
-      "name_fr": "Humidité du profil du sol (Surface jusqu'à la roche-mère)",
+      "name_fr": "Humidit\u00e9 du profil du sol (Surface jusqu'\u00e0 la roche-m\u00e8re)",
       "mean": 0.236,
       "min": 0.1817,
       "max": 0.3026,
-      "display_unit": "m³/m³",
+      "display_unit": "m\u00b3/m\u00b3",
       "completeness_pct": 100.0,
-      "seasonal_trend": "Tendance à la baisse"
+      "seasonal_trend": "Tendance \u00e0 la baisse"
     },
     {
       "variable_id": "sm_surface_wetness",
       "name_en": "Surface Soil Wetness Ratio",
-      "name_fr": "Degré de saturation de surface (0-1)",
+      "name_fr": "Degr\u00e9 de saturation de surface (0-1)",
       "mean": 42.408,
       "min": 24.9,
       "max": 66.7,
-      "display_unit": "نسبة (0-100%)",
+      "display_unit": "\u0646\u0633\u0628\u0629 (0-100%)",
       "completeness_pct": 100.0,
-      "seasonal_trend": "Tendance à la baisse"
+      "seasonal_trend": "Tendance \u00e0 la baisse"
     },
     {
       "variable_id": "sm_rootzone_wetness",
       "name_en": "Root Zone Soil Wetness Ratio",
-      "name_fr": "Degré de saturation de la zone racinaire (0-1)",
+      "name_fr": "Degr\u00e9 de saturation de la zone racinaire (0-1)",
       "mean": 53.3,
       "min": 40.3,
       "max": 69.4,
-      "display_unit": "نسبة (0-100%)",
+      "display_unit": "\u0646\u0633\u0628\u0629 (0-100%)",
       "completeness_pct": 100.0,
-      "seasonal_trend": "Tendance à la baisse"
+      "seasonal_trend": "Tendance \u00e0 la baisse"
     },
     {
       "variable_id": "sm_rootzone_pctl",
       "name_en": "Root Zone Moisture Percentile",
-      "name_fr": "Percentile d'humidité de la zone racinaire",
+      "name_fr": "Percentile d'humidit\u00e9 de la zone racinaire",
       "mean": 44.105,
       "min": 12.004,
       "max": 73.068,
       "display_unit": "%",
       "completeness_pct": 75.0,
-      "seasonal_trend": "Tendance à la hausse"
+      "seasonal_trend": "Tendance \u00e0 la hausse"
     },
     {
       "variable_id": "sm_surface_anomaly",
       "name_en": "Surface Soil Moisture Anomaly",
-      "name_fr": "Anomalie d'humidité de surface",
+      "name_fr": "Anomalie d'humidit\u00e9 de surface",
       "mean": 0.006,
       "min": -0.0529,
       "max": 0.073,
-      "display_unit": "m³/m³",
+      "display_unit": "m\u00b3/m\u00b3",
       "completeness_pct": 100.0,
-      "seasonal_trend": "Tendance à la hausse"
+      "seasonal_trend": "Tendance \u00e0 la hausse"
     },
     {
       "variable_id": "soil_temp_layer1",
       "name_en": "Soil Temperature Layer 1 (0-10 cm)",
-      "name_fr": "Température du sol - Couche 1 (0-10 cm)",
+      "name_fr": "Temp\u00e9rature du sol - Couche 1 (0-10 cm)",
       "mean": 18.506,
       "min": 12.23,
       "max": 26.24,
-      "display_unit": "°C",
+      "display_unit": "\u00b0C",
       "completeness_pct": 100.0,
-      "seasonal_trend": "Tendance à la hausse"
+      "seasonal_trend": "Tendance \u00e0 la hausse"
     },
     {
       "variable_id": "soil_temp_layer2",
       "name_en": "Soil Temperature Layer 2 (10-20 cm)",
-      "name_fr": "Température du sol - Couche 2 (10-20 cm)",
+      "name_fr": "Temp\u00e9rature du sol - Couche 2 (10-20 cm)",
       "mean": 18.526,
       "min": 13.1,
       "max": 25.76,
-      "display_unit": "°C",
+      "display_unit": "\u00b0C",
       "completeness_pct": 100.0,
-      "seasonal_trend": "Tendance à la hausse"
+      "seasonal_trend": "Tendance \u00e0 la hausse"
     },
     {
       "variable_id": "land_evapotranspiration_flux",
       "name_en": "Land Evapotranspiration Flux",
-      "name_fr": "Flux d'évapotranspiration totale",
+      "name_fr": "Flux d'\u00e9vapotranspiration totale",
       "mean": 1.56,
       "min": 0.291,
       "max": 3.512,
       "display_unit": "mm/jour",
       "completeness_pct": 100.0,
-      "seasonal_trend": "Tendance à la baisse"
+      "seasonal_trend": "Tendance \u00e0 la baisse"
     },
     {
       "variable_id": "soil_water_infiltration_flux",
@@ -815,7 +893,7 @@
       "max": 6.593,
       "display_unit": "mm/jour",
       "completeness_pct": 100.0,
-      "seasonal_trend": "Stable sur l'année"
+      "seasonal_trend": "Stable sur l'ann\u00e9e"
     },
     {
       "variable_id": "overland_runoff_flux",
@@ -826,40 +904,40 @@
       "max": 1.993,
       "display_unit": "mm/jour",
       "completeness_pct": 100.0,
-      "seasonal_trend": "Tendance à la baisse"
+      "seasonal_trend": "Tendance \u00e0 la baisse"
     },
     {
       "variable_id": "precipitation_total_surface_flux",
       "name_en": "Precipitation Surface Flux",
-      "name_fr": "Flux de précipitations totales en surface",
+      "name_fr": "Flux de pr\u00e9cipitations totales en surface",
       "mean": 2.533,
       "min": 0.023,
       "max": 9.16,
       "display_unit": "mm/jour",
       "completeness_pct": 100.0,
-      "seasonal_trend": "Tendance à la baisse"
+      "seasonal_trend": "Tendance \u00e0 la baisse"
     },
     {
       "variable_id": "land_fraction_wilting",
       "name_en": "Wilting Point Land Fraction",
-      "name_fr": "Fraction de surface au point de flétrissement",
+      "name_fr": "Fraction de surface au point de fl\u00e9trissement",
       "mean": 41.508,
       "min": 1.7,
       "max": 82.4,
-      "display_unit": "نسبة (0-100%)",
+      "display_unit": "\u0646\u0633\u0628\u0629 (0-100%)",
       "completeness_pct": 100.0,
-      "seasonal_trend": "Tendance à la hausse"
+      "seasonal_trend": "Tendance \u00e0 la hausse"
     },
     {
       "variable_id": "vegetation_greenness_fraction",
       "name_en": "Vegetation Greenness Fraction",
-      "name_fr": "Fraction de verdure de la végétation",
+      "name_fr": "Fraction de verdure de la v\u00e9g\u00e9tation",
       "mean": 94.125,
       "min": 90.3,
       "max": 96.0,
-      "display_unit": "نسبة (0-100%)",
+      "display_unit": "\u0646\u0633\u0628\u0629 (0-100%)",
       "completeness_pct": 100.0,
-      "seasonal_trend": "Stable sur l'année"
+      "seasonal_trend": "Stable sur l'ann\u00e9e"
     },
     {
       "variable_id": "leaf_area_index",
@@ -868,9 +946,9 @@
       "mean": 0.911,
       "min": 0.173,
       "max": 1.755,
-      "display_unit": "m²/m²",
+      "display_unit": "m\u00b2/m\u00b2",
       "completeness_pct": 100.0,
-      "seasonal_trend": "Tendance à la baisse"
+      "seasonal_trend": "Tendance \u00e0 la baisse"
     }
   ],
   "three_hourly_series": null,
@@ -878,62 +956,62 @@
     {
       "id": "sm_surface",
       "name_en": "Surface Soil Moisture (0-5 cm)",
-      "name_fr": "Humidité superficielle du sol (0-5 cm)",
+      "name_fr": "Humidit\u00e9 superficielle du sol (0-5 cm)",
       "category": "soil_moisture",
       "is_agricultural": true,
-      "raw_unit": "m³/m³",
-      "display_unit": "m³/m³",
+      "raw_unit": "m\u00b3/m\u00b3",
+      "display_unit": "m\u00b3/m\u00b3",
       "min_physical": 0.0,
       "max_physical": 0.8
     },
     {
       "id": "sm_rootzone",
       "name_en": "Root Zone Soil Moisture (0-100 cm)",
-      "name_fr": "Humidité du sol dans la zone racinaire (0-100 cm)",
+      "name_fr": "Humidit\u00e9 du sol dans la zone racinaire (0-100 cm)",
       "category": "soil_moisture",
       "is_agricultural": true,
-      "raw_unit": "m³/m³",
-      "display_unit": "m³/m³",
+      "raw_unit": "m\u00b3/m\u00b3",
+      "display_unit": "m\u00b3/m\u00b3",
       "min_physical": 0.0,
       "max_physical": 0.8
     },
     {
       "id": "sm_profile",
       "name_en": "Profile Soil Moisture (Surface to Bedrock)",
-      "name_fr": "Humidité du profil du sol (Surface jusqu'à la roche-mère)",
+      "name_fr": "Humidit\u00e9 du profil du sol (Surface jusqu'\u00e0 la roche-m\u00e8re)",
       "category": "soil_moisture",
       "is_agricultural": true,
-      "raw_unit": "m³/m³",
-      "display_unit": "m³/m³",
+      "raw_unit": "m\u00b3/m\u00b3",
+      "display_unit": "m\u00b3/m\u00b3",
       "min_physical": 0.0,
       "max_physical": 0.8
     },
     {
       "id": "sm_surface_wetness",
       "name_en": "Surface Soil Wetness Ratio",
-      "name_fr": "Degré de saturation de surface (0-1)",
+      "name_fr": "Degr\u00e9 de saturation de surface (0-1)",
       "category": "soil_wetness",
       "is_agricultural": true,
       "raw_unit": "dimensionless",
-      "display_unit": "نسبة (0-100%)",
+      "display_unit": "\u0646\u0633\u0628\u0629 (0-100%)",
       "min_physical": 0.0,
       "max_physical": 1.0
     },
     {
       "id": "sm_rootzone_wetness",
       "name_en": "Root Zone Soil Wetness Ratio",
-      "name_fr": "Degré de saturation de la zone racinaire (0-1)",
+      "name_fr": "Degr\u00e9 de saturation de la zone racinaire (0-1)",
       "category": "soil_wetness",
       "is_agricultural": true,
       "raw_unit": "dimensionless",
-      "display_unit": "نسبة (0-100%)",
+      "display_unit": "\u0646\u0633\u0628\u0629 (0-100%)",
       "min_physical": 0.0,
       "max_physical": 1.0
     },
     {
       "id": "sm_rootzone_pctl",
       "name_en": "Root Zone Moisture Percentile",
-      "name_fr": "Percentile d'humidité de la zone racinaire",
+      "name_fr": "Percentile d'humidit\u00e9 de la zone racinaire",
       "category": "anomalies_and_drought",
       "is_agricultural": true,
       "raw_unit": "%",
@@ -944,43 +1022,43 @@
     {
       "id": "sm_surface_anomaly",
       "name_en": "Surface Soil Moisture Anomaly",
-      "name_fr": "Anomalie d'humidité de surface",
+      "name_fr": "Anomalie d'humidit\u00e9 de surface",
       "category": "anomalies_and_drought",
       "is_agricultural": true,
-      "raw_unit": "m³/m³",
-      "display_unit": "m³/m³",
+      "raw_unit": "m\u00b3/m\u00b3",
+      "display_unit": "m\u00b3/m\u00b3",
       "min_physical": -0.5,
       "max_physical": 0.5
     },
     {
       "id": "soil_temp_layer1",
       "name_en": "Soil Temperature Layer 1 (0-10 cm)",
-      "name_fr": "Température du sol - Couche 1 (0-10 cm)",
+      "name_fr": "Temp\u00e9rature du sol - Couche 1 (0-10 cm)",
       "category": "soil_temperature",
       "is_agricultural": true,
       "raw_unit": "K",
-      "display_unit": "°C",
+      "display_unit": "\u00b0C",
       "min_physical": 200.0,
       "max_physical": 350.0
     },
     {
       "id": "soil_temp_layer2",
       "name_en": "Soil Temperature Layer 2 (10-20 cm)",
-      "name_fr": "Température du sol - Couche 2 (10-20 cm)",
+      "name_fr": "Temp\u00e9rature du sol - Couche 2 (10-20 cm)",
       "category": "soil_temperature",
       "is_agricultural": true,
       "raw_unit": "K",
-      "display_unit": "°C",
+      "display_unit": "\u00b0C",
       "min_physical": 200.0,
       "max_physical": 340.0
     },
     {
       "id": "land_evapotranspiration_flux",
       "name_en": "Land Evapotranspiration Flux",
-      "name_fr": "Flux d'évapotranspiration totale",
+      "name_fr": "Flux d'\u00e9vapotranspiration totale",
       "category": "water_fluxes",
       "is_agricultural": true,
-      "raw_unit": "kg/m²/s",
+      "raw_unit": "kg/m\u00b2/s",
       "display_unit": "mm/jour",
       "min_physical": 0.0,
       "max_physical": 0.001
@@ -991,7 +1069,7 @@
       "name_fr": "Flux d'infiltration de l'eau dans le sol",
       "category": "water_fluxes",
       "is_agricultural": true,
-      "raw_unit": "kg/m²/s",
+      "raw_unit": "kg/m\u00b2/s",
       "display_unit": "mm/jour",
       "min_physical": 0.0,
       "max_physical": 0.01
@@ -1002,7 +1080,7 @@
       "name_fr": "Flux de ruissellement de surface",
       "category": "water_fluxes",
       "is_agricultural": true,
-      "raw_unit": "kg/m²/s",
+      "raw_unit": "kg/m\u00b2/s",
       "display_unit": "mm/jour",
       "min_physical": 0.0,
       "max_physical": 0.01
@@ -1010,10 +1088,10 @@
     {
       "id": "precipitation_total_surface_flux",
       "name_en": "Precipitation Surface Flux",
-      "name_fr": "Flux de précipitations totales en surface",
+      "name_fr": "Flux de pr\u00e9cipitations totales en surface",
       "category": "water_fluxes",
       "is_agricultural": true,
-      "raw_unit": "kg/m²/s",
+      "raw_unit": "kg/m\u00b2/s",
       "display_unit": "mm/jour",
       "min_physical": 0.0,
       "max_physical": 0.05
@@ -1021,22 +1099,22 @@
     {
       "id": "land_fraction_wilting",
       "name_en": "Wilting Point Land Fraction",
-      "name_fr": "Fraction de surface au point de flétrissement",
+      "name_fr": "Fraction de surface au point de fl\u00e9trissement",
       "category": "land_fractions",
       "is_agricultural": true,
       "raw_unit": "fraction (0-1)",
-      "display_unit": "نسبة (0-100%)",
+      "display_unit": "\u0646\u0633\u0628\u0629 (0-100%)",
       "min_physical": 0.0,
       "max_physical": 1.0
     },
     {
       "id": "vegetation_greenness_fraction",
       "name_en": "Vegetation Greenness Fraction",
-      "name_fr": "Fraction de verdure de la végétation",
+      "name_fr": "Fraction de verdure de la v\u00e9g\u00e9tation",
       "category": "vegetation",
       "is_agricultural": true,
       "raw_unit": "fraction (0-1)",
-      "display_unit": "نسبة (0-100%)",
+      "display_unit": "\u0646\u0633\u0628\u0629 (0-100%)",
       "min_physical": 0.0,
       "max_physical": 1.0
     },
@@ -1046,8 +1124,8 @@
       "name_fr": "Indice de surface foliaire (LAI)",
       "category": "vegetation",
       "is_agricultural": true,
-      "raw_unit": "m²/m²",
-      "display_unit": "m²/m²",
+      "raw_unit": "m\u00b2/m\u00b2",
+      "display_unit": "m\u00b2/m\u00b2",
       "min_physical": 0.0,
       "max_physical": 10.0
     }
@@ -1055,70 +1133,70 @@
   "categories": {
     "soil_moisture": {
       "name_en": "Soil Moisture",
-      "name_fr": "Humidité du sol",
-      "name_ar": "رطوبة التربة",
+      "name_fr": "Humidit\u00e9 du sol",
+      "name_ar": "\u0631\u0637\u0648\u0628\u0629 \u0627\u0644\u062a\u0631\u0628\u0629",
       "icon": "water_drop"
     },
     "soil_wetness": {
       "name_en": "Soil Wetness Ratio",
-      "name_fr": "Degré de saturation",
-      "name_ar": "درجة تشبع التربة",
+      "name_fr": "Degr\u00e9 de saturation",
+      "name_ar": "\u062f\u0631\u062c\u0629 \u062a\u0634\u0628\u0639 \u0627\u0644\u062a\u0631\u0628\u0629",
       "icon": "opacity"
     },
     "anomalies_and_drought": {
       "name_en": "Anomalies & Drought Indicators",
-      "name_fr": "Anomalies et indicateurs de sécheresse",
-      "name_ar": "مؤشرات الجفاف والانحراف المناخي",
+      "name_fr": "Anomalies et indicateurs de s\u00e9cheresse",
+      "name_ar": "\u0645\u0624\u0634\u0631\u0627\u062a \u0627\u0644\u062c\u0641\u0627\u0641 \u0648\u0627\u0644\u0627\u0646\u062d\u0631\u0627\u0641 \u0627\u0644\u0645\u0646\u0627\u062e\u064a",
       "icon": "warning"
     },
     "soil_temperature": {
       "name_en": "Soil & Surface Temperature",
-      "name_fr": "Températures du sol et de surface",
-      "name_ar": "حرارة التربة والسطح",
+      "name_fr": "Temp\u00e9ratures du sol et de surface",
+      "name_ar": "\u062d\u0631\u0627\u0631\u0629 \u0627\u0644\u062a\u0631\u0628\u0629 \u0648\u0627\u0644\u0633\u0637\u062d",
       "icon": "thermostat"
     },
     "water_fluxes": {
       "name_en": "Evapotranspiration & Water Fluxes",
-      "name_fr": "Évapotranspiration et flux d'eau",
-      "name_ar": "التبخر والتدفقات المائية",
+      "name_fr": "\u00c9vapotranspiration et flux d'eau",
+      "name_ar": "\u0627\u0644\u062a\u0628\u062e\u0631 \u0648\u0627\u0644\u062a\u062f\u0641\u0642\u0627\u062a \u0627\u0644\u0645\u0627\u0626\u064a\u0629",
       "icon": "waves"
     },
     "land_fractions": {
       "name_en": "Land Surface Fractions",
       "name_fr": "Fractions de surface du sol",
-      "name_ar": "نسب مساحة التربة (تشبع / ذبول)",
+      "name_ar": "\u0646\u0633\u0628 \u0645\u0633\u0627\u062d\u0629 \u0627\u0644\u062a\u0631\u0628\u0629 (\u062a\u0634\u0628\u0639 / \u0630\u0628\u0648\u0644)",
       "icon": "pie_chart"
     },
     "vegetation": {
       "name_en": "Vegetation & Canopy Dynamics",
-      "name_fr": "Végétation et dynamique foliaire",
-      "name_ar": "الغطاء النباتي والأوراق",
+      "name_fr": "V\u00e9g\u00e9tation et dynamique foliaire",
+      "name_ar": "\u0627\u0644\u063a\u0637\u0627\u0621 \u0627\u0644\u0646\u0628\u0627\u062a\u064a \u0648\u0627\u0644\u0623\u0648\u0631\u0627\u0642",
       "icon": "eco"
     },
     "energy_and_radiation": {
       "name_en": "Energy, Heat & Radiation Fluxes",
-      "name_fr": "Flux d'énergie et rayonnement",
-      "name_ar": "الإشعاع الشمسي والتدفقات الحرارية",
+      "name_fr": "Flux d'\u00e9nergie et rayonnement",
+      "name_ar": "\u0627\u0644\u0625\u0634\u0639\u0627\u0639 \u0627\u0644\u0634\u0645\u0633\u064a \u0648\u0627\u0644\u062a\u062f\u0641\u0642\u0627\u062a \u0627\u0644\u062d\u0631\u0627\u0631\u064a\u0629",
       "icon": "wb_sunny"
     },
     "atmospheric": {
       "name_en": "Near-Surface Atmospheric State",
-      "name_fr": "Conditions atmosphériques de surface",
-      "name_ar": "حالة الجو القريب من السطح",
+      "name_fr": "Conditions atmosph\u00e9riques de surface",
+      "name_ar": "\u062d\u0627\u0644\u0629 \u0627\u0644\u062c\u0648 \u0627\u0644\u0642\u0631\u064a\u0628 \u0645\u0646 \u0627\u0644\u0633\u0637\u062d",
       "icon": "air"
     },
     "snow_and_peat": {
       "name_en": "Snow & Peatland Special Variables",
-      "name_fr": "Neige et tourbières",
-      "name_ar": "الثلوج والأراضي الرطبة",
+      "name_fr": "Neige et tourbi\u00e8res",
+      "name_ar": "\u0627\u0644\u062b\u0644\u0648\u062c \u0648\u0627\u0644\u0623\u0631\u0627\u0636\u064a \u0627\u0644\u0631\u0637\u0628\u0629",
       "icon": "ac_unit"
     }
   },
   "notes": [
     "Observations NASA SMAP L4 V008 extraites via Google Earth Engine (NASA/SMAP/SPL4SMGP/008).",
-    "Résolution spatiale EASE-Grid 2.0 projetée avec une échelle de 11000 mètres.",
-    "Les flux d'eau (ET, infiltration, ruissellement) sont convertis en mm/jour (1 kg/m²/s = 86400 mm/jour).",
-    "Les températures du sol sont converties de Kelvin en degrés Celsius (°C = K - 273.15).",
-    "Toutes les valeurs manquantes sont préservées en null et jamais fabriquées."
+    "R\u00e9solution spatiale EASE-Grid 2.0 projet\u00e9e avec une \u00e9chelle de 11000 m\u00e8tres.",
+    "Les flux d'eau (ET, infiltration, ruissellement) sont convertis en mm/jour (1 kg/m\u00b2/s = 86400 mm/jour).",
+    "Les temp\u00e9ratures du sol sont converties de Kelvin en degr\u00e9s Celsius (\u00b0C = K - 273.15).",
+    "Toutes les valeurs manquantes sont pr\u00e9serv\u00e9es en null et jamais fabriqu\u00e9es."
   ]
 }

@@ -21,7 +21,7 @@
       <div class="brand-badge">FIELDShift AI</div>
       <div class="brand-title">
         <h1>NASA SMAP L4 & Climate Scientific Explorer</h1>
-        <p class="subtitle">Analyse agro-climatique avancée par satellite & Explications en Darija Marocaine</p>
+        <p class="subtitle">Analyse agro-climatique avancée par satellite NASA SMAP & NASA POWER · Explications en Darija Marocaine</p>
       </div>
     </div>
     <div class="header-actions">
@@ -34,485 +34,485 @@
     </div>
   </header>
 
-  <!-- Main Navigation Tabs -->
-  <nav class="main-nav" role="tablist">
-    <button class="tab-btn active" data-tab="smap-explorer" role="tab">🛰️ NASA SMAP Explorer (L4 V008)</button>
-    <button class="tab-btn" data-tab="power-classic" role="tab">🌦️ NASA POWER & Diagnostic</button>
-    <button class="tab-btn" data-tab="api-catalog" role="tab">📚 Catalogue des 46 Variables</button>
-  </nav>
-
-  <!-- TAB 1: NASA SMAP EXPLORER (PRIMARY DASHBOARD) -->
+  <!-- MAIN WORKSPACE : NASA SMAP EXPLORER -->
   <main class="tab-content active" id="tab-smap-explorer">
 
-    <!-- Dynamic Location Prompt & Status Banner -->
-    <section id="location-onboarding-banner" class="location-banner">
-      <div class="banner-content">
-        <div class="banner-badge-icon">📍</div>
-        <div class="banner-text">
-          <strong id="banner-geo-title">Découvrir les Données Satellitaires de Votre Position</strong>
-          <p id="banner-geo-desc">Activez votre position pour afficher automatiquement l'humidité du sol, la température et les indices agro-climatiques NASA SMAP L4 pour votre zone exacte.</p>
-        </div>
-      </div>
-      <div class="banner-actions">
-        <button type="button" id="btn-banner-get-location" class="btn-geo-primary">
-          <span class="gps-pulse"></span>
-          <span>📍 Obtenir ma position actuelle</span>
-        </button>
-        <button type="button" id="btn-banner-dismiss" class="btn-geo-secondary">Conserver les exemples prédéfinis</button>
-      </div>
-    </section>
-
-    <!-- Location & Analysis Control Bar -->
-    <section class="control-card">
-      <div class="control-header">
-        <div class="control-title">
-          <h2>Paramètres d'Analyse Spatiale et Temporelle</h2>
-          <span class="control-hint">Résolution EASE-Grid 2.0 (~9-11 km) · Modèle d'assimilation satellitaire SMAP L4</span>
-        </div>
-        <div class="preset-group">
-          <button type="button" class="preset-btn btn-gps-locate" id="btn-get-my-location" title="Détecter automatiquement ma position GPS actuelle">
-            <span class="gps-pulse-dot"></span>
-            <span>📍 Ma Position Actuelle (GPS)</span>
-          </button>
-          <span class="preset-label">Exemples :</span>
-          <button type="button" class="preset-btn" id="btn-preset-meknes">🇲🇦 Meknès (33.89, -5.55)</button>
-          <button type="button" class="preset-btn" id="btn-preset-gharbi">🇲🇦 Gharb (34.30, -5.90)</button>
-          <button type="button" class="preset-btn" id="btn-preset-tadla">🇲🇦 Tadla (32.40, -6.50)</button>
-          <button type="button" class="preset-btn" id="btn-preset-souss">🇲🇦 Souss (30.40, -9.10)</button>
-        </div>
-      </div>
-
-      <!-- GPS Live Feedback Notification -->
-      <div id="gps-status-feedback" class="gps-feedback-bar" hidden>
-        <span class="gps-status-spinner">🛰️</span>
-        <span id="gps-status-text">Géolocalisation en cours...</span>
-      </div>
-
-      <form id="smap-form" class="control-grid">
-        <div class="form-group">
-          <label for="smap-city">Recherche Ville / Région ou GPS</label>
-          <div class="input-with-action">
-            <input type="text" id="smap-city" name="city" placeholder="Ex: Casablanca, Rabat, Marrakech, ou cliquez sur 📍 GPS">
-            <button type="button" id="btn-input-gps" class="btn-sm btn-gps-icon" title="Détecter ma position GPS actuelle">📍</button>
-            <button type="button" id="btn-geocode" class="btn-sm" title="Géocoder avec Nominatim">🔍</button>
-          </div>
-        </div>
-
-        <div class="form-group pair">
-          <div>
-            <label for="smap-lat">Latitude (°N)</label>
-            <input type="number" id="smap-lat" name="latitude" step="0.0001" placeholder="Ex: 33.5731" required>
-          </div>
-          <div>
-            <label for="smap-lon">Longitude (°E/W)</label>
-            <input type="number" id="smap-lon" name="longitude" step="0.0001" placeholder="Ex: -7.5898" required>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="smap-year">Année (Sélecteur rapide)</label>
-          <select id="smap-year" name="year">
-            <option value="2025" selected>2025 (Année de référence)</option>
-            <option value="2024">2024</option>
-            <option value="2023">2023</option>
-            <option value="2022">2022</option>
-            <option value="2021">2021</option>
-            <option value="custom">Période personnalisée...</option>
-          </select>
-        </div>
-
-        <div class="form-group pair custom-dates" id="custom-date-container" hidden>
-          <div>
-            <label for="smap-start">Date Début</label>
-            <input type="date" id="smap-start" name="start_date" value="2025-01-01" min="2015-03-31">
-          </div>
-          <div>
-            <label for="smap-end">Date Fin</label>
-            <input type="date" id="smap-end" name="end_date" value="2025-12-31">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="smap-mode">Mode d'Analyse</label>
-          <select id="smap-mode" name="mode">
-            <option value="agricultural" selected>🌾 Mode Agricole (16 variables clés)</option>
-            <option value="scientific">🔬 Mode Scientifique Complet (46 variables)</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="smap-scale">Échelle Spatiale</label>
-          <select id="smap-scale" name="scale">
-            <option value="11000" selected>11 000 m (Empreinte nominale SMAP)</option>
-            <option value="9000">9 000 m (EASE-Grid standard)</option>
-            <option value="1000">1 000 m (Extraction ponctuelle pixel)</option>
-          </select>
-        </div>
-
-        <div class="form-actions">
-          <label class="checkbox-label" title="Recharger depuis GEE sans utiliser le cache disque">
-            <input type="checkbox" id="smap-refresh">
-            <span>Forcer l'appel GEE (`refresh=true`)</span>
-          </label>
-          <button type="submit" id="btn-run-smap" class="btn-primary">
-            <span class="btn-icon">⚡</span>
-            <span>Extraire les Données Satellite</span>
-          </button>
-        </div>
-      </form>
-
-      <!-- Processing Metrics Banner -->
-      <div id="smap-metrics-banner" class="metrics-banner" hidden>
-        <div class="metric-item">
-          <span class="metric-label">Statut</span>
-          <strong id="metric-status" class="status-badge optimal">Succès 200 OK</strong>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">Cache Disque</span>
-          <strong id="metric-cache">—</strong>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">Temps de calcul</span>
-          <strong id="metric-time">—</strong>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">Observations traitées</span>
-          <strong id="metric-obs">—</strong>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">Point analysé</span>
-          <strong id="metric-coords">—</strong>
-        </div>
-      </div>
-    </section>
-
-    <!-- Sub-Tabs for SMAP Explorer -->
-    <div class="sub-nav">
-      <button class="sub-tab-btn active" data-sub="sub-overview">Vue d'Ensemble</button>
-      <button class="sub-tab-btn" data-sub="sub-moisture">Humidité du Sol</button>
-      <button class="sub-tab-btn" data-sub="sub-drought">Sécheresse & Saturation</button>
-      <button class="sub-tab-btn" data-sub="sub-temp">Température du Sol</button>
-      <button class="sub-tab-btn" data-sub="sub-water">Bilan Hydrique & Flux</button>
-      <button class="sub-tab-btn" data-sub="sub-comparisons">Comparateur Temporel</button>
-      <button class="sub-tab-btn" data-sub="sub-table">Tableau Scientifique & Export</button>
-    </div>
-
-    <!-- Loading State -->
+    <!-- Global Processing Loader -->
     <div id="smap-loader" class="loader-box" hidden>
       <div class="spinner"></div>
       <p id="smap-loader-text">Interrogation de Google Earth Engine pour le dataset NASA/SMAP/SPL4SMGP/008...</p>
-      <small>Calcul des moyennes spatiales et temporelles sur la grille EASE-Grid 2.0</small>
+      <small>Calcul des moyennes spatiales et temporelles sur la grille EASE-Grid 2.0 (~9-11 km)</small>
     </div>
 
-    <!-- Error State -->
+    <!-- Global Error State -->
     <div id="smap-error" class="error-box" hidden>
       <div class="error-icon">⚠️</div>
       <div class="error-content">
         <h3 id="error-title">Erreur d'extraction satellite</h3>
         <p id="error-message">Message d'erreur détaillé.</p>
+        <button type="button" class="btn-sm" id="btn-error-dismiss" style="margin-top:0.5rem">Fermer</button>
       </div>
     </div>
 
-    <!-- SUB-TAB CONTENT 1: OVERVIEW -->
-    <div class="sub-content active" id="sub-overview">
-      <div class="section-title-row">
-        <h3>Indicateurs Clés de l'Humidité et du Climat du Sol</h3>
-        <span class="hint-click-darija">💡 Cliquez sur n'importe quelle carte pour afficher l'explication scientifique en Darija Marocaine</span>
+    <!-- =========================================================================
+         PAGE / VUE 1 : ACCUEIL & ENTRÉE (Simple & Inviting Landing)
+         ========================================================================= -->
+    <section id="smap-view-welcome" class="smap-view-page active">
+      <div class="welcome-hero-card">
+        <div class="hero-tag">🛰️ Données Satellitaires Officielles NASA SMAP Level-4 (V008)</div>
+        <h2 class="hero-title">Explorateur Agro-Climatique Satellitaire</h2>
+        <p class="hero-lead">
+          Analysez avec précision l'humidité du sol, le stress hydrique et le climat agricole sur toute zone géographique, 
+          avec un système interactif complet d'explications scientifiques en <strong>Darija Marocaine (الدارجة المغربية)</strong>.
+        </p>
+
+        <div class="hero-pillars-grid">
+          <div class="pillar-card">
+            <div class="pillar-icon">🌾</div>
+            <h3>Mode Agricole (16 variables)</h3>
+            <p>Humidité racinaire (0-100 cm), sécheresse, saturation, température du lit de semence et évapotranspiration pour les cultures.</p>
+          </div>
+          <div class="pillar-card">
+            <div class="pillar-icon">🔬</div>
+            <h3>Mode Scientifique (46 variables)</h3>
+            <p>Toutes les bandes physiques SMAP L4 en 10 catégories : profils thermiques 6 couches, flux énergétiques et comparateur croisé.</p>
+          </div>
+          <div class="pillar-card">
+            <div class="pillar-icon">🇲🇦</div>
+            <h3>Explications en Darija</h3>
+            <p>Cliquez sur n'importe quel chiffre, carte ou graphique pour obtenir une explication claire et vulgarisée en Darija marocaine.</p>
+          </div>
+        </div>
+
+        <div class="hero-action-container">
+          <button type="button" id="btn-hero-start" class="btn-hero-start">
+            <span class="btn-sparkle">🚀</span>
+            <span>Commencer l'Exploration</span>
+          </button>
+          <p class="hero-note">📍 Détection automatique de votre position GPS ou sélection par ville</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         PAGE / VUE 2 : SÉLECTION DE LOCALISATION & CHOIX DU MODE
+         ========================================================================= -->
+    <section id="smap-view-choice" class="smap-view-page" hidden>
+
+      <!-- Location Card -->
+      <div class="choice-location-card">
+        <div class="choice-card-header">
+          <div class="location-current-display">
+            <span class="loc-pin-icon">📍</span>
+            <div>
+              <span class="loc-label">Votre Localisation d'Analyse :</span>
+              <h3 id="choice-display-city">Tanger, Maroc</h3>
+              <span class="loc-coords" id="choice-display-coords">Coordonnées : 35.7687°N, -5.8139°W (EASE-Grid 2.0 ~9-11 km)</span>
+            </div>
+          </div>
+          <div class="location-quick-actions">
+            <button type="button" id="choice-btn-gps" class="btn-gps-action">
+              <span class="gps-pulse"></span>
+              <span>📍 Détecter ma position GPS</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Presets & City Search -->
+        <div class="choice-location-controls">
+          <div class="quick-chips-row">
+            <span class="chips-label">Exemples rapides :</span>
+            <button type="button" class="city-chip active" data-city="Tanger, Morocco" data-lat="35.7687" data-lon="-5.8139">🇲🇦 Tanger (35.77, -5.81)</button>
+            <button type="button" class="city-chip" data-city="Meknes, Morocco" data-lat="33.8900" data-lon="-5.5500">🇲🇦 Meknès (33.89, -5.55)</button>
+            <button type="button" class="city-chip" data-city="Sidi Slimane, Gharb" data-lat="34.3000" data-lon="-5.9000">🇲🇦 Gharb (34.30, -5.90)</button>
+            <button type="button" class="city-chip" data-city="Beni Mellal, Tadla" data-lat="32.4000" data-lon="-6.5000">🇲🇦 Tadla (32.40, -6.50)</button>
+            <button type="button" class="city-chip" data-city="Taroudant, Souss" data-lat="30.4000" data-lon="-9.1000">🇲🇦 Souss (30.40, -9.10)</button>
+          </div>
+
+          <div class="choice-search-row">
+            <div class="search-input-group">
+              <input type="text" id="choice-search-city" placeholder="Ou recherchez une ville (ex: Casablanca, Fès, Rabat, Oujda, Nador)..." autocomplete="off">
+              <button type="button" id="choice-btn-search" class="btn-search-city">Rechercher 🔍</button>
+            </div>
+            <div class="choice-year-group">
+              <label for="choice-year-select">Année :</label>
+              <select id="choice-year-select">
+                <option value="2025" selected>2025 (Année de référence)</option>
+                <option value="2024">2024</option>
+                <option value="2023">2023</option>
+                <option value="2022">2022</option>
+                <option value="2021">2021</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div id="choice-gps-feedback" class="choice-gps-feedback" hidden>
+          <span id="choice-gps-status-text">Détection GPS en cours...</span>
+        </div>
       </div>
 
-      <!-- Summary Cards Grid -->
-      <div class="cards-grid" id="cards-container">
-        <!-- Dynamically populated cards -->
+      <!-- Mode Selection Header -->
+      <div class="choice-modes-header">
+        <h3>Choisissez votre Mode d'Analyse</h3>
+        <p>Chaque mode dispose de sa propre page dédiée pour une expérience claire et sans encombrement.</p>
       </div>
 
-      <!-- Annual Summary Metrics Row -->
-      <div class="annual-summary-panel">
-        <div class="panel-header">
-          <h4>Résumé Annuel & Variations Statistiques (NASA SMAP L4)</h4>
-          <span class="badge info" id="annual-period-badge">Année 2025</span>
+      <!-- The 2 Big Mode Cards -->
+      <div class="choice-modes-grid">
+
+        <!-- BOUTON 1 : MODE AGRICOLE -->
+        <div class="mode-choice-card mode-agri-card" id="card-agri-selection">
+          <div class="mode-card-badge agri">🌾 Pour Agriculteurs, Coopératives & Agronomes</div>
+          <div class="mode-card-header">
+            <div class="mode-icon-circle agri">🌾</div>
+            <div class="mode-title-block">
+              <h4>Mode Agricole</h4>
+              <span class="mode-var-count">16 Variables Essentielles</span>
+            </div>
+          </div>
+          <p class="mode-desc">
+            Visualisez directement l'état de l'eau utile aux racines, le risque de stress hydrique et le bilan évapotranspiratoire pour guider vos décisions culturales.
+          </p>
+          <ul class="mode-feature-list">
+            <li>💧 <strong>Humidité racinaire</strong> (0-100 cm) & surface (0-5 cm)</li>
+            <li>🌵 <strong>Percentiles de sécheresse</strong> & niveau de saturation</li>
+            <li>🌡️ <strong>Température du lit de semence</strong> (0-10 cm pour la levée)</li>
+            <li>🌊 <strong>Bilan hydrique agricole</strong> (Évapotranspiration vs Infiltration)</li>
+            <li>🇲🇦 <strong>Explications en Darija Marocaine</strong> sur chaque chiffre au clic</li>
+          </ul>
+          <button type="button" id="btn-choose-agri" class="btn-open-mode agri">
+            <span>🌾 Accéder au Mode Agricole (16 variables)</span>
+            <span class="arrow-icon">➔</span>
+          </button>
+        </div>
+
+        <!-- BOUTON 2 : MODE SCIENTIFIQUE -->
+        <div class="mode-choice-card mode-sci-card" id="card-sci-selection">
+          <div class="mode-card-badge sci">🔬 Pour Chercheurs, Météorologues & Hydrologues</div>
+          <div class="mode-card-header">
+            <div class="mode-icon-circle sci">🔬</div>
+            <div class="mode-title-block">
+              <h4>Mode Scientifique Complet</h4>
+              <span class="mode-var-count">46 Variables SMAP L4</span>
+            </div>
+          </div>
+          <p class="mode-desc">
+            L'intégralité du produit NASA SPL4SMGP V008 classé en 10 catégories scientifiques : profils thermiques 6 couches, bilan radiatif, flux énergétiques et comparateur.
+          </p>
+          <ul class="mode-feature-list">
+            <li>🛰️ <strong>Les 46 variables SMAP L4</strong> réparties en 10 catégories</li>
+            <li>🌡️ <strong>Profil thermique multicouches</strong> (Surface, C1, C2, C3, C4, Bedrock)</li>
+            <li>⚡ <strong>Flux d'énergie & radiatifs</strong> (chaleur latente, sensible, rayonnement)</li>
+            <li>🔄 <strong>Comparateur croisé bi-variable</strong> multi-axes</li>
+            <li>📊 <strong>Tableau scientifique intégral & Export</strong> CSV / JSON</li>
+          </ul>
+          <button type="button" id="btn-choose-sci" class="btn-open-mode sci">
+            <span>🔬 Accéder au Mode Scientifique (46 variables)</span>
+            <span class="arrow-icon">➔</span>
+          </button>
+        </div>
+
+      </div>
+
+      <div class="choice-footer-back">
+        <button type="button" id="btn-back-to-welcome" class="btn-text-back">
+          <span>⬅ Revenir à la page d'accueil</span>
+        </button>
+      </div>
+
+    </section>
+
+    <!-- =========================================================================
+         PAGE / VUE 3 : PAGE DÉDIÉE : MODE AGRICOLE (16 variables)
+         ========================================================================= -->
+    <section id="smap-view-agri" class="smap-view-page" hidden>
+
+      <!-- Clean Top Navigation Bar -->
+      <div class="mode-top-bar agri-bar">
+        <div class="bar-left">
+          <button type="button" class="btn-bar-back" id="btn-back-from-agri">
+            <span>⬅ Changer de mode / Ville</span>
+          </button>
+          <div class="bar-location-badge">
+            <span class="badge-dot agri"></span>
+            <span id="agri-current-loc">📍 Tanger, Maroc</span>
+          </div>
+        </div>
+        <div class="bar-right">
+          <div class="bar-year-selector">
+            <label for="agri-year-select">Année :</label>
+            <select id="agri-year-select">
+              <option value="2025" selected>2025</option>
+              <option value="2024">2024</option>
+              <option value="2023">2023</option>
+              <option value="2022">2022</option>
+              <option value="2021">2021</option>
+            </select>
+          </div>
+          <button type="button" class="btn-switch-direct" id="btn-switch-to-sci">
+            <span>🔬 Passer au Mode Scientifique (46)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Status strip -->
+      <div class="view-status-strip">
+        <span class="strip-item status-ok">✅ Mode Agricole Actif</span>
+        <span class="strip-item" id="agri-strip-cache">Cache : Disque (HIT)</span>
+        <span class="strip-item" id="agri-strip-obs">16 variables · 2 920 obs 3h</span>
+        <span class="strip-item" id="agri-strip-time">30.9 s</span>
+        <span class="strip-item strip-darija-hint">💡 Cliquez sur n'importe quel indicateur pour l'explication en Darija</span>
+      </div>
+
+      <!-- Sub-Tabs inside Agri Mode -->
+      <div class="view-sub-tabs">
+        <button class="v-tab-btn active" data-vsub="agri-sub-cards">🌾 16 Indicateurs Clés</button>
+        <button class="v-tab-btn" data-vsub="agri-sub-moisture">💧 Humidité Racinaire & Surface</button>
+        <button class="v-tab-btn" data-vsub="agri-sub-drought">🌵 Sécheresse & Saturation</button>
+        <button class="v-tab-btn" data-vsub="agri-sub-water">🌊 Bilan Hydrique Agricole</button>
+        <button class="v-tab-btn" data-vsub="agri-sub-table">📋 Tableau Annuel des 16 Variables</button>
+      </div>
+
+      <!-- SUB-VIEW 1: 16 SUMMARY CARDS -->
+      <div class="v-sub-content active" id="agri-sub-cards">
+        <div class="cards-grid" id="agri-cards-container">
+          <!-- Dynamically populated 16 agricultural cards -->
+        </div>
+      </div>
+
+      <!-- SUB-VIEW 2: MOISTURE EVOLUTION CHART -->
+      <div class="v-sub-content" id="agri-sub-moisture">
+        <div class="chart-panel">
+          <div class="chart-header">
+            <div>
+              <h3>Évolution Mensuelle de l'Humidité du Sol par Profondeur</h3>
+              <p class="chart-sub">Comparaison entre la surface (0-5 cm), la zone racinaire (0-100 cm) et le profil total</p>
+            </div>
+            <div class="chart-legend-custom">
+              <span class="legend-item"><span class="legend-color" style="background:#2563eb"></span> Surface (0-5 cm)</span>
+              <span class="legend-item"><span class="legend-color" style="background:#16a34a"></span> Zone Racinaire (0-100 cm)</span>
+              <span class="legend-item"><span class="legend-color" style="background:#9333ea"></span> Profil Total</span>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-agri-moisture"></canvas>
+          </div>
+          <div class="chart-insight-box">
+            <strong>Interprétation agronomique :</strong>
+            <p id="agri-insight-moisture">La zone racinaire (0-100 cm) constitue le réservoir utile pour la culture du blé et des arbres fruitiers.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-VIEW 3: DROUGHT & SATURATION CHARTS -->
+      <div class="v-sub-content" id="agri-sub-drought">
+        <div class="grid-2-col">
+          <div class="chart-panel">
+            <div class="chart-header">
+              <h3>Percentiles de Sécheresse Racinaire (sm_rootzone_pctl)</h3>
+              <p class="chart-sub">&lt; 20% = Sécheresse sévère · 20-40% = Sécheresse modérée · &gt; 40% = Normal/Humide</p>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chart-agri-drought-pctl"></canvas>
+            </div>
+          </div>
+          <div class="chart-panel">
+            <div class="chart-header">
+              <h3>Degré de Saturation du Sol (sm_rootzone_wetness)</h3>
+              <p class="chart-sub">0.0 = Sol complètement sec · 1.0 = Sol totalement saturé d'eau</p>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chart-agri-wetness"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-VIEW 4: WATER FLUX CHART -->
+      <div class="v-sub-content" id="agri-sub-water">
+        <div class="chart-panel">
+          <div class="chart-header">
+            <div>
+              <h3>Bilan Hydrique Agricole : Évapotranspiration vs Infiltration</h3>
+              <p class="chart-sub">Flux convertis en millimètres par jour (mm/jour) d'équivalent eau</p>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-agri-water-flux"></canvas>
+          </div>
+          <div class="chart-insight-box">
+            <strong>Gestion de l'eau :</strong>
+            <p>Comparez la consommation d'eau par les plantes (évapotranspiration) et l'infiltration pour déterminer les besoins nets d'irrigation.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-VIEW 5: ANNUAL SUMMARY TABLE -->
+      <div class="v-sub-content" id="agri-sub-table">
+        <div class="table-panel">
+          <div class="table-responsive">
+            <table class="data-table" id="table-agri-summary">
+              <thead>
+                <tr>
+                  <th>Variable</th>
+                  <th>Moyenne Annuelle</th>
+                  <th>Min Observé</th>
+                  <th>Max Observé</th>
+                  <th>Unité</th>
+                  <th>Complétude</th>
+                  <th>Tendance Saisonnière</th>
+                  <th>Explication Darija</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-agri-summary"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- =========================================================================
+         PAGE / VUE 4 : PAGE DÉDIÉE : MODE SCIENTIFIQUE (46 variables)
+         ========================================================================= -->
+    <section id="smap-view-sci" class="smap-view-page" hidden>
+
+      <!-- Clean Top Navigation Bar -->
+      <div class="mode-top-bar sci-bar">
+        <div class="bar-left">
+          <button type="button" class="btn-bar-back" id="btn-back-from-sci">
+            <span>⬅ Changer de mode / Ville</span>
+          </button>
+          <div class="bar-location-badge">
+            <span class="badge-dot sci"></span>
+            <span id="sci-current-loc">📍 Tanger, Maroc</span>
+          </div>
+        </div>
+        <div class="bar-right">
+          <div class="bar-year-selector">
+            <label for="sci-year-select">Année :</label>
+            <select id="sci-year-select">
+              <option value="2025" selected>2025</option>
+              <option value="2024">2024</option>
+              <option value="2023">2023</option>
+              <option value="2022">2022</option>
+              <option value="2021">2021</option>
+            </select>
+          </div>
+          <button type="button" class="btn-switch-direct" id="btn-switch-to-agri">
+            <span>🌾 Passer au Mode Agricole (16)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Status strip -->
+      <div class="view-status-strip">
+        <span class="strip-item status-ok">✅ Mode Scientifique Actif</span>
+        <span class="strip-item" id="sci-strip-cache">Cache : Disque (HIT)</span>
+        <span class="strip-item" id="sci-strip-obs">46 variables · 2 920 obs 3h</span>
+        <span class="strip-item" id="sci-strip-time">30.9 s</span>
+        <span class="strip-item strip-darija-hint">💡 Cliquez sur n'importe quel indicateur pour l'explication en Darija</span>
+      </div>
+
+      <!-- Sub-Tabs inside Scientific Mode -->
+      <div class="view-sub-tabs">
+        <button class="v-tab-btn active" data-vsub="sci-sub-cards">🔬 46 Variables par Catégorie</button>
+        <button class="v-tab-btn" data-vsub="sci-sub-temp">🌡️ Profil Thermique 6 Couches</button>
+        <button class="v-tab-btn" data-vsub="sci-sub-flux">⚡ Flux Énergétiques & Radiatifs</button>
+        <button class="v-tab-btn" data-vsub="sci-sub-cross">🔄 Comparateur Croisé Bi-Variable</button>
+        <button class="v-tab-btn" data-vsub="sci-sub-table">📊 Tableau Scientifique Global & Export</button>
+      </div>
+
+      <!-- SUB-VIEW 1: 46 SCIENTIFIC CARDS WITH CATEGORY FILTER -->
+      <div class="v-sub-content active" id="sci-sub-cards">
+        <div class="category-filters-container" id="sci-category-filter-chips">
+          <!-- 10 category chips generated dynamically -->
+        </div>
+        <div class="cards-grid" id="sci-cards-container">
+          <!-- Dynamically populated 46 scientific cards -->
+        </div>
+      </div>
+
+      <!-- SUB-VIEW 2: MULTI-LAYER SOIL TEMPERATURE -->
+      <div class="v-sub-content" id="sci-sub-temp">
+        <div class="chart-panel">
+          <div class="chart-header">
+            <div>
+              <h3>Profil Thermique du Sol selon la Profondeur (°C)</h3>
+              <p class="chart-sub">Température de la surface et des couches 1 (0-10 cm), 2 (10-20 cm), 3 (20-40 cm), 4 (40-100 cm) et Bedrock</p>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-sci-temp"></canvas>
+          </div>
+          <div class="chart-insight-box">
+            <strong>Gradien thermique :</strong>
+            <p>La stratification thermique influence les échanges convectifs, l'évaporation du sol et la respiration microbienne selon la profondeur.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-VIEW 3: ENERGY & RADIATION FLUXES -->
+      <div class="v-sub-content" id="sci-sub-flux">
+        <div class="chart-panel">
+          <div class="chart-header">
+            <div>
+              <h3>Flux d'Énergie et Bilan Radiatif (W/m²)</h3>
+              <p class="chart-sub">Rayonnement net descendant, flux de chaleur latente (évapotranspiration) et chaleur sensible</p>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-sci-flux"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-VIEW 4: CROSS-VARIABLE DUAL AXIS COMPARATOR -->
+      <div class="v-sub-content" id="sci-sub-cross">
+        <div class="chart-panel">
+          <div class="chart-header">
+            <div>
+              <h3>Comparateur Croisé Bi-Variable (Double Axe Y)</h3>
+              <p class="chart-sub">Examinez les corrélations physiques entre n'importe quelles variables du modèle SMAP</p>
+            </div>
+            <div class="dual-selector-row">
+              <label>Axe Y1 (Bleu) : <select id="sci-select-y1" class="select-sm"></select></label>
+              <label>Axe Y2 (Vert) : <select id="sci-select-y2" class="select-sm"></select></label>
+              <button type="button" id="sci-btn-update-cross" class="btn-sm">Mettre à jour 📈</button>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-sci-cross"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-VIEW 5: DETAILED SCIENTIFIC TABLE & EXPORTS -->
+      <div class="v-sub-content" id="sci-sub-table">
+        <div class="table-controls-bar">
+          <div class="table-search-box">
+            <input type="text" id="sci-table-search" placeholder="Rechercher une variable ou un mois...">
+          </div>
+          <div class="table-actions-group">
+            <button type="button" id="sci-btn-export-csv" class="btn-secondary">📥 Exporter en CSV</button>
+            <button type="button" id="sci-btn-export-json" class="btn-secondary">💾 Exporter en JSON</button>
+          </div>
         </div>
         <div class="table-responsive">
-          <table class="data-table" id="table-annual-summary">
-            <thead>
-              <tr>
-                <th>Variable</th>
-                <th>Moyenne Annuelle</th>
-                <th>Min Observé</th>
-                <th>Max Observé</th>
-                <th>Unité</th>
-                <th>Complétude</th>
-                <th>Tendance Saisonnière</th>
-                <th>Explication</th>
-              </tr>
-            </thead>
-            <tbody id="tbody-annual-summary">
-              <!-- Populated dynamically -->
-            </tbody>
+          <table class="data-table detailed" id="table-sci-detailed">
+            <thead id="thead-sci-detailed"></thead>
+            <tbody id="tbody-sci-detailed"></tbody>
           </table>
         </div>
-      </div>
-    </div>
-
-    <!-- SUB-TAB CONTENT 2: SOIL MOISTURE -->
-    <div class="sub-content" id="sub-moisture">
-      <div class="chart-panel">
-        <div class="chart-header">
-          <div>
-            <h3>Évolution Mensuelle de l'Humidité du Sol par Profondeur</h3>
-            <p class="chart-sub">Comparaison entre la surface (0-5 cm), la zone racinaire (0-100 cm) et le profil total</p>
-          </div>
-          <div class="chart-legend-custom">
-            <span class="legend-item"><span class="legend-color" style="background:#2563eb"></span> Surface (0-5 cm)</span>
-            <span class="legend-item"><span class="legend-color" style="background:#16a34a"></span> Zone Racinaire (0-100 cm)</span>
-            <span class="legend-item"><span class="legend-color" style="background:#9333ea"></span> Profil Total (Bedrock)</span>
-          </div>
-        </div>
-        <div class="chart-wrapper">
-          <canvas id="chart-moisture-evolution"></canvas>
-        </div>
-        <div class="chart-insight-box">
-          <strong>Interprétation agronomique :</strong>
-          <p id="insight-moisture">Chargez les données pour visualiser la dynamique de recharge et d'épuisement du réservoir hydrique du sol.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- SUB-TAB CONTENT 3: DROUGHT & WETNESS -->
-    <div class="sub-content" id="sub-drought">
-      <div class="grid-2-col">
-        <div class="chart-panel">
-          <div class="chart-header">
-            <h3>Percentiles de Sécheresse Racinaire (sm_rootzone_pctl)</h3>
-            <p class="chart-sub">&lt; 20% = Sécheresse sévère · 20-40% = Sécheresse modérée · &gt; 40% = Normal/Humide</p>
-          </div>
-          <div class="chart-wrapper">
-            <canvas id="chart-drought-percentiles"></canvas>
-          </div>
-        </div>
-
-        <div class="chart-panel">
-          <div class="chart-header">
-            <h3>Degré de Saturation & Risque de Flétrissement</h3>
-            <p class="chart-sub">Saturation (sm_rootzone_wetness) vs Surface au point de flétrissement (wilting)</p>
-          </div>
-          <div class="chart-wrapper">
-            <canvas id="chart-wetness-wilting"></canvas>
-          </div>
-        </div>
+        <p class="table-footer-hint">💡 Cliquez sur n'importe quelle cellule pour ouvrir l'explication scientifique en Darija.</p>
       </div>
 
-      <div class="chart-panel mt-1">
-        <div class="chart-header">
-          <h3>Anomalies Mensuelles d'Humidité de Surface (sm_surface_anomaly)</h3>
-          <p class="chart-sub">Valeurs positives (+) = plus humide que la climatologie · Valeurs négatives (-) = plus sec</p>
-        </div>
-        <div class="chart-wrapper">
-          <canvas id="chart-anomalies"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <!-- SUB-TAB CONTENT 4: SOIL TEMPERATURE -->
-    <div class="sub-content" id="sub-temp">
-      <div class="chart-panel">
-        <div class="chart-header">
-          <div>
-            <h3>Profil Thermique du Sol selon la Profondeur (°C)</h3>
-            <p class="chart-sub">Température de la surface et des couches 1 (0-10 cm), 2 (10-20 cm), 3 (20-40 cm) et 4 (40-100 cm)</p>
-          </div>
-        </div>
-        <div class="chart-wrapper">
-          <canvas id="chart-soil-temp"></canvas>
-        </div>
-        <div class="chart-insight-box">
-          <strong>Seuil de Germination et Activité Racinaire :</strong>
-          <p id="insight-temp">La température du lit de semence (0-10 cm) conditionne la levée des cultures et l'assimilation du phosphore.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- SUB-TAB CONTENT 5: WATER DYNAMICS & FLUXES -->
-    <div class="sub-content" id="sub-water">
-      <div class="chart-panel">
-        <div class="chart-header">
-          <div>
-            <h3>Bilan Hydrique Mensuel : Précipitation, Évapotranspiration et Infiltration</h3>
-            <p class="chart-sub">Flux convertis en millimètres par jour (mm/jour) d'équivalent eau liquide</p>
-          </div>
-        </div>
-        <div class="chart-wrapper">
-          <canvas id="chart-water-fluxes"></canvas>
-        </div>
-        <div class="chart-insight-box">
-          <strong>Conservation de l'eau :</strong>
-          <p id="insight-water">Comparez la consommation en eau (ET) avec l'eau qui s'infiltre réellement dans la zone racinaire pour optimiser l'irrigation.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- SUB-TAB CONTENT 6: COMPARISONS -->
-    <div class="sub-content" id="sub-comparisons">
-      <div class="chart-panel">
-        <div class="chart-header">
-          <div>
-            <h3>Comparateur Croisé Bi-Variable (Double Axe)</h3>
-            <p class="chart-sub">Sélectionnez deux variables pour examiner leurs corrélations physiques</p>
-          </div>
-          <div class="dual-selector-row">
-            <label>
-              Variable Axe Y1 :
-              <select id="select-var-y1" class="select-sm"></select>
-            </label>
-            <label>
-              Variable Axe Y2 :
-              <select id="select-var-y2" class="select-sm"></select>
-            </label>
-            <button type="button" id="btn-update-cross" class="btn-sm">Mettre à jour le graphique</button>
-          </div>
-        </div>
-        <div class="chart-wrapper">
-          <canvas id="chart-cross-variables"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <!-- SUB-TAB CONTENT 7: SCIENTIFIC TABLE & EXPORT -->
-    <div class="sub-content" id="sub-table">
-      <div class="table-controls-bar">
-        <div class="table-search-box">
-          <input type="text" id="table-search" placeholder="Rechercher un mois ou une valeur...">
-        </div>
-        <div class="table-actions-group">
-          <button type="button" id="btn-export-csv" class="btn-secondary">📥 Exporter en CSV</button>
-          <button type="button" id="btn-export-json" class="btn-secondary">💾 Exporter en JSON</button>
-        </div>
-      </div>
-
-      <div class="table-responsive">
-        <table class="data-table detailed" id="table-detailed-series">
-          <thead id="thead-detailed-series">
-            <!-- Dynamically generated based on mode -->
-          </thead>
-          <tbody id="tbody-detailed-series">
-            <!-- Dynamically populated -->
-          </tbody>
-        </table>
-      </div>
-      <p class="table-footer-hint">💡 Astuce : Cliquez sur n'importe quel chiffre du tableau pour ouvrir son explication agronomique en Darija.</p>
-    </div>
+    </section>
 
   </main>
 
-  <!-- TAB 2: NASA POWER & CLASSIC DIAGNOSTICS (PRESERVED) -->
-  <main class="tab-content" id="tab-power-classic">
-    <div class="classic-layout">
-      <form id="query-form" class="panel">
-        <h2>Requête NASA POWER & Catalogue CMR</h2>
-        <label>
-          API
-          <select id="source" name="source">
-            <option value="power">NASA POWER — climat quotidien</option>
-            <option value="SPL3SMP_E">NASA SMAP SPL3SMP_E — humidité superficielle, 9 km (CMR)</option>
-            <option value="SPL4SMGP">NASA SMAP SPL4SMGP — surface et zone racinaire (CMR)</option>
-            <option value="GPM_3IMERGDF">GPM IMERG — précipitations journalières</option>
-            <option value="HLSL30">NASA HLS Landsat — végétation, 30 m</option>
-            <option value="agro">Données agronomiques — recommandations et rotations</option>
-          </select>
-        </label>
-        <p id="product-note" class="hint">Température, précipitations, humidité de l'air, vent et rayonnement. Communauté agricole AG.</p>
-        <label id="endpoint-field">
-          Endpoint
-          <select id="endpoint" name="endpoint">
-            <option value="summary">Résumé agricole — /api/climate/summary</option>
-            <option value="daily">Observations quotidiennes — /api/climate</option>
-            <option value="export">Export CSV — /api/climate/export</option>
-          </select>
-        </label>
-        <label>
-          Ville
-          <input id="city" name="city" value="Tangier, Morocco" autocomplete="off">
-        </label>
-        <div class="pair">
-          <label>
-            Latitude
-            <input id="latitude" name="latitude" inputmode="decimal" placeholder="optionnel">
-          </label>
-          <label>
-            Longitude
-            <input id="longitude" name="longitude" inputmode="decimal" placeholder="optionnel">
-          </label>
-        </div>
-        <p class="hint">Si latitude et longitude sont remplies, elles remplacent la ville.</p>
-        <div class="pair">
-          <label>
-            Début
-            <input id="start-date" name="start_date" type="date" value="2025-01-01" required>
-          </label>
-          <label>
-            Fin
-            <input id="end-date" name="end_date" type="date" value="2025-12-31" required>
-          </label>
-        </div>
-        <div id="thresholds" class="thresholds">
-          <label>Jour chaud ≥ <input id="hot" type="number" step="0.1" value="30"></label>
-          <label>Jour froid ≤ <input id="cold" type="number" step="0.1" value="5"></label>
-          <label>Jour sec &lt; <input id="dry" type="number" step="0.1" value="1"></label>
-        </div>
-        <label class="check">
-          <input id="refresh" type="checkbox">
-          Forcer un nouvel appel NASA (`refresh=true`)
-        </label>
-        <button type="submit" class="btn-primary">Appeler l'API NASA</button>
-      </form>
 
-      <section class="panel results" aria-live="polite">
-        <h2>Résultats NASA POWER</h2>
-        <p id="idle" class="hint">Lancez une requête pour tester les endpoints classiques.</p>
-        <div id="call" class="call" hidden>
-          <div class="metrics">
-            <article>
-              <span>Statut</span>
-              <strong id="status">—</strong>
-            </article>
-            <article>
-              <span>Temps</span>
-              <strong id="elapsed">—</strong>
-            </article>
-            <article>
-              <span>Cache</span>
-              <strong id="cache">—</strong>
-            </article>
-            <article>
-              <span>Taille</span>
-              <strong id="size">—</strong>
-            </article>
-          </div>
-          <p class="url-line"><span>GET</span> <code id="request-url"></code></p>
-          <button id="copy-url" type="button" class="ghost">Copier l'URL</button>
-        </div>
-        <div id="error" class="error" hidden></div>
-        <div id="output"></div>
-        <details id="raw-block" hidden>
-          <summary>JSON brut</summary>
-          <pre id="raw"></pre>
-        </details>
-      </section>
-    </div>
-  </main>
-
-  <!-- TAB 3: VARIABLE CATALOG -->
-  <main class="tab-content" id="tab-api-catalog">
-    <div class="catalog-header-panel">
-      <h2>Catalogue Officiel des 46 Variables NASA SMAP Level-4 (V008)</h2>
-      <p>Source : NASA Goddard Space Flight Center / SPL4SMGP Product Specification Document. Chaque variable est classée par catégorie scientifique.</p>
-    </div>
-    <div class="category-filter-row" id="catalog-category-filters">
-      <!-- Generated buttons for categories -->
-    </div>
-    <div class="catalog-grid" id="catalog-cards-container">
-      <!-- Populated dynamically -->
-    </div>
-  </main>
 
   <!-- SLIDE-IN MOROCCAN DARIJA EXPLANATION DRAWER -->
   <aside class="darija-drawer" id="darija-drawer" aria-hidden="true" dir="rtl">
@@ -525,7 +525,7 @@
       <button type="button" class="drawer-close" id="btn-close-drawer" aria-label="Fermer le panneau">✕</button>
     </div>
 
-    <!-- Observation Value Badge -->
+    <!-- Observation Value Banner -->
     <div class="drawer-value-banner">
       <div>
         <span class="val-label">القيمة المسجلة :</span>

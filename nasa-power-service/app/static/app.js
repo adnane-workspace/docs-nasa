@@ -1,30 +1,74 @@
 /**
  * FIELDShift AI — NASA SMAP Level-4 Scientific & Agricultural Explorer
- * Interactive Dashboard & Moroccan Darija (الدارجة المغربية) Explanation Engine
+ * Multi-Page Architecture & Moroccan Darija (الدارجة المغربية) Explanation Engine
  */
 
-// Global State
-let currentSmapData = null;
+// Application State
+const AppState = {
+  view: "welcome", // "welcome" | "choice" | "agri" | "sci"
+  location: {
+    city: "Tanger, Maroc",
+    lat: 35.7687,
+    lon: -5.8139
+  },
+  year: "2025",
+  agriData: null,
+  sciData: null,
+  activeSciCatFilter: "all"
+};
+
 let chartInstances = {};
 let allVariablesCatalog = {};
 const STORAGE_LOCATION_KEY = "fieldshift_smap_user_location";
 
 document.addEventListener("DOMContentLoaded", () => {
   initNavTabs();
-  initSubTabs();
-  initPresets();
-  initLocationControls();
-  initSmapControls();
+  initSubTabsInsideModes();
+  initHeroActions();
+  initChoiceViewControls();
+  initAgriViewControls();
+  initSciViewControls();
   initClassicPower();
   initDarijaDrawer();
   loadVariablesCatalog();
-  
-  // Intelligent startup: Load saved location, or request GPS, or fallback
-  initLocationStartup();
+
+  // Restore saved location if present, else keep Tanger
+  restoreSavedLocation();
+
+  // Show welcome view first (clean, no clutter)
+  showSmapView("welcome");
 });
 
 /* ==========================================================================
-   Navigation & Tab Handlers
+   Multi-View Page Switching Architecture
+   ========================================================================== */
+function showSmapView(viewName) {
+  AppState.view = viewName;
+  const views = ["welcome", "choice", "agri", "sci"];
+  
+  views.forEach(v => {
+    const el = document.getElementById(`smap-view-${v}`);
+    if (el) {
+      if (v === viewName) {
+        el.hidden = false;
+        el.classList.add("active");
+      } else {
+        el.hidden = true;
+        el.classList.remove("active");
+      }
+    }
+  });
+
+  // Trigger resize on visible Chart.js instances
+  setTimeout(() => {
+    Object.values(chartInstances).forEach(c => c && c.resize && c.resize());
+  }, 60);
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* ==========================================================================
+   Navigation Tabs (SMAP Explorer vs NASA POWER vs Catalog)
    ========================================================================== */
 function initNavTabs() {
   const tabs = document.querySelectorAll(".main-nav .tab-btn");
@@ -38,19 +82,30 @@ function initNavTabs() {
       if (targetContent) targetContent.classList.add("active");
     });
   });
+
+  // Error dismiss button
+  const errDismiss = document.getElementById("btn-error-dismiss");
+  if (errDismiss) {
+    errDismiss.addEventListener("click", () => {
+      document.getElementById("smap-error").hidden = true;
+    });
+  }
 }
 
-function initSubTabs() {
-  const subTabs = document.querySelectorAll(".sub-nav .sub-tab-btn");
-  subTabs.forEach(tab => {
-    tab.addEventListener("click", () => {
-      subTabs.forEach(t => t.classList.remove("active"));
-      tab.classList.add("active");
-      const targetId = tab.dataset.sub;
-      document.querySelectorAll(".sub-content").forEach(c => c.classList.remove("active"));
-      const targetContent = document.getElementById(targetId);
-      if (targetContent) targetContent.classList.add("active");
-      // Trigger resize on charts in the activated tab to ensure proper rendering
+function initSubTabsInsideModes() {
+  document.querySelectorAll(".v-tab-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const parent = btn.closest(".smap-view-page");
+      if (!parent) return;
+
+      parent.querySelectorAll(".v-tab-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      const targetId = btn.dataset.vsub;
+      parent.querySelectorAll(".v-sub-content").forEach(c => c.classList.remove("active"));
+      const target = document.getElementById(targetId);
+      if (target) target.classList.add("active");
+
       setTimeout(() => {
         Object.values(chartInstances).forEach(c => c && c.resize && c.resize());
       }, 50);
@@ -59,45 +114,174 @@ function initSubTabs() {
 }
 
 /* ==========================================================================
-   GPS Geolocation & User Location Controls
+   VUE 1 : ACCUEIL & ENTRÉE (Hero Actions)
    ========================================================================== */
-function initLocationControls() {
-  const btnGetLocation = document.getElementById("btn-get-my-location");
-  const btnInputGps = document.getElementById("btn-input-gps");
-  const btnBannerGetLocation = document.getElementById("btn-banner-get-location");
-  const btnBannerDismiss = document.getElementById("btn-banner-dismiss");
+function initHeroActions() {
+  const btnStart = document.getElementById("btn-hero-start");
+  if (btnStart) {
+    btnStart.addEventListener("click", () => {
+      updateChoiceLocationDisplay();
+      showSmapView("choice");
 
-  const handleGpsClick = () => {
-    getUserLocation({ autoFetch: true, userTriggered: true });
-  };
-
-  if (btnGetLocation) btnGetLocation.addEventListener("click", handleGpsClick);
-  if (btnInputGps) btnInputGps.addEventListener("click", handleGpsClick);
-  if (btnBannerGetLocation) btnBannerGetLocation.addEventListener("click", handleGpsClick);
-
-  if (btnBannerDismiss) {
-    btnBannerDismiss.addEventListener("click", () => {
-      const banner = document.getElementById("location-onboarding-banner");
-      if (banner) banner.style.display = "none";
+      // Auto-request GPS if user hasn't explicitly set a location yet
+      const saved = localStorage.getItem(STORAGE_LOCATION_KEY);
+      if (!saved && "geolocation" in navigator) {
+        getUserLocation({ autoFetch: false, userTriggered: false });
+      }
     });
   }
 }
 
-async function getUserLocation({ autoFetch = true, userTriggered = false } = {}) {
-  const feedback = document.getElementById("gps-status-feedback");
-  const feedbackText = document.getElementById("gps-status-text");
-  const banner = document.getElementById("location-onboarding-banner");
+/* ==========================================================================
+   VUE 2 : SÉLECTION DE LOCALISATION & CHOIX DU MODE
+   ========================================================================== */
+function initChoiceViewControls() {
+  // GPS Button
+  const btnGps = document.getElementById("choice-btn-gps");
+  if (btnGps) {
+    btnGps.addEventListener("click", () => {
+      getUserLocation({ autoFetch: false, userTriggered: true });
+    });
+  }
+
+  // Quick preset chips
+  document.querySelectorAll(".city-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      document.querySelectorAll(".city-chip").forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+
+      AppState.location.city = chip.dataset.city;
+      AppState.location.lat = parseFloat(chip.dataset.lat);
+      AppState.location.lon = parseFloat(chip.dataset.lon);
+
+      saveLocation(AppState.location);
+      updateChoiceLocationDisplay();
+    });
+  });
+
+  // Search input & button
+  const btnSearch = document.getElementById("choice-btn-search");
+  const inputSearch = document.getElementById("choice-search-city");
+  
+  const handleSearch = async () => {
+    const q = inputSearch.value.trim();
+    if (!q) return;
+
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=jsonv2&limit=1`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const item = data[0];
+        AppState.location.lat = parseFloat(item.lat);
+        AppState.location.lon = parseFloat(item.lon);
+        AppState.location.city = item.display_name.split(",").slice(0, 2).join(",").trim();
+
+        document.querySelectorAll(".city-chip").forEach(c => c.classList.remove("active"));
+        saveLocation(AppState.location);
+        updateChoiceLocationDisplay();
+      } else {
+        alert("Localité non trouvée. Veuillez préciser le nom de la ville.");
+      }
+    } catch (e) {
+      console.warn("Geocoding search error:", e);
+    }
+  };
+
+  if (btnSearch) btnSearch.addEventListener("click", handleSearch);
+  if (inputSearch) {
+    inputSearch.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleSearch();
+      }
+    });
+  }
+
+  // Year select
+  const selectYear = document.getElementById("choice-year-select");
+  if (selectYear) {
+    selectYear.addEventListener("change", () => {
+      AppState.year = selectYear.value;
+      // sync with agri & sci year selects
+      syncYearSelects(AppState.year);
+    });
+  }
+
+  // Button 1: Mode Agricole
+  const btnAgri = document.getElementById("btn-choose-agri");
+  if (btnAgri) {
+    btnAgri.addEventListener("click", async () => {
+      await loadAndDisplayAgriMode();
+    });
+  }
+
+  // Button 2: Mode Scientifique
+  const btnSci = document.getElementById("btn-choose-sci");
+  if (btnSci) {
+    btnSci.addEventListener("click", async () => {
+      await loadAndDisplaySciMode();
+    });
+  }
+
+  // Back to welcome
+  const btnBackWelcome = document.getElementById("btn-back-to-welcome");
+  if (btnBackWelcome) {
+    btnBackWelcome.addEventListener("click", () => {
+      showSmapView("welcome");
+    });
+  }
+}
+
+function updateChoiceLocationDisplay() {
+  const cityEl = document.getElementById("choice-display-city");
+  const coordsEl = document.getElementById("choice-display-coords");
+  if (cityEl) cityEl.textContent = AppState.location.city;
+  if (coordsEl) coordsEl.textContent = `Coordonnées : ${AppState.location.lat.toFixed(4)}°N, ${AppState.location.lon.toFixed(4)}°W (EASE-Grid 2.0 ~9-11 km)`;
+}
+
+function syncYearSelects(yearVal) {
+  ["choice-year-select", "agri-year-select", "sci-year-select"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = yearVal;
+  });
+}
+
+function saveLocation(loc) {
+  try {
+    localStorage.setItem(STORAGE_LOCATION_KEY, JSON.stringify(loc));
+  } catch (e) {
+    console.warn("Failed to store location:", e);
+  }
+}
+
+function restoreSavedLocation() {
+  try {
+    const saved = localStorage.getItem(STORAGE_LOCATION_KEY);
+    if (saved) {
+      const loc = JSON.parse(saved);
+      if (loc && loc.lat && loc.lon) {
+        AppState.location.lat = parseFloat(loc.lat);
+        AppState.location.lon = parseFloat(loc.lon);
+        AppState.location.city = loc.city || `${AppState.location.lat.toFixed(4)}, ${AppState.location.lon.toFixed(4)}`;
+      }
+    }
+  } catch (e) {
+    console.warn("Error reading stored location:", e);
+  }
+  updateChoiceLocationDisplay();
+}
+
+async function getUserLocation({ autoFetch = false, userTriggered = false } = {}) {
+  const feedback = document.getElementById("choice-gps-feedback");
+  const feedbackText = document.getElementById("choice-gps-status-text");
 
   if (!("geolocation" in navigator)) {
-    if (userTriggered) {
-      alert("La géolocalisation GPS n'est pas supportée par votre navigateur.");
-    }
+    if (userTriggered) alert("La géolocalisation GPS n'est pas supportée par votre navigateur.");
     return;
   }
 
   if (feedback && feedbackText) {
     feedback.hidden = false;
-    feedback.className = "gps-feedback-bar";
     feedbackText.textContent = "🛰️ Détection de vos coordonnées GPS en cours...";
   }
 
@@ -106,20 +290,12 @@ async function getUserLocation({ autoFetch = true, userTriggered = false } = {})
       const lat = position.coords.latitude;
       const lon = position.coords.longitude;
 
-      document.getElementById("smap-lat").value = lat.toFixed(4);
-      document.getElementById("smap-lon").value = lon.toFixed(4);
+      AppState.location.lat = lat;
+      AppState.location.lon = lon;
 
-      // Indicate GPS active on preset buttons
-      document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
-      const btnGps = document.getElementById("btn-get-my-location");
-      if (btnGps) btnGps.classList.add("active");
-
-      if (feedbackText) {
-        feedbackText.textContent = `📍 Coordonnées GPS reçues (${lat.toFixed(4)}, ${lon.toFixed(4)}) · Identification de la localité...`;
-      }
-
-      // Two-tier reverse geocoding: backend first, then direct browser client fallback
       let cityName = `Position GPS (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
+
+      // Try reverse geocoding via backend first
       try {
         const revRes = await fetch(`/api/smap-gee/reverse-geocode?latitude=${lat}&longitude=${lon}`);
         if (revRes.ok) {
@@ -132,7 +308,7 @@ async function getUserLocation({ autoFetch = true, userTriggered = false } = {})
         console.warn("Backend reverse geocode failed:", e);
       }
 
-      // If backend returned generic fallback, try direct browser fetch to Nominatim
+      // Fallback to client reverse geocode if generic
       if (cityName.startsWith("Position GPS") || cityName.startsWith("Coordonnées")) {
         try {
           const directRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=jsonv2&addressdetails=1`);
@@ -141,309 +317,129 @@ async function getUserLocation({ autoFetch = true, userTriggered = false } = {})
             const addr = d.address || {};
             const place = addr.city || addr.town || addr.village || addr.municipality || addr.suburb || addr.county || addr.state;
             const country = addr.country || "";
-            if (place) {
-              cityName = country ? `${place}, ${country}` : place;
-            } else if (d.display_name) {
-              cityName = d.display_name.split(",").slice(0, 2).join(",").trim();
-            }
+            if (place) cityName = country ? `${place}, ${country}` : place;
           }
         } catch (e2) {
-          console.warn("Client reverse geocode fallback failed:", e2);
+          console.warn("Client reverse geocode failed:", e2);
         }
       }
 
-      document.getElementById("smap-city").value = cityName;
+      AppState.location.city = cityName;
+      saveLocation(AppState.location);
+      updateChoiceLocationDisplay();
 
-      // Update feedback banner
       if (feedback && feedbackText) {
-        feedback.className = "gps-feedback-bar success";
-        feedbackText.textContent = `✅ Position GPS identifiée : ${cityName} (${lat.toFixed(4)}°N, ${lon.toFixed(4)}°W)`;
+        feedbackText.textContent = `✅ Position GPS active : ${cityName} (${lat.toFixed(4)}°N, ${lon.toFixed(4)}°W)`;
       }
 
-      // Update top banner
-      if (banner) {
-        banner.classList.add("detected");
-        const titleEl = document.getElementById("banner-geo-title");
-        const descEl = document.getElementById("banner-geo-desc");
-        const primaryBtn = document.getElementById("btn-banner-get-location");
-        if (titleEl) titleEl.textContent = `📍 Localisation Active : ${cityName}`;
-        if (descEl) descEl.textContent = `Données satellitaires SMAP L4 V008 extraites pour vos coordonnées (${lat.toFixed(4)}°N, ${lon.toFixed(4)}°W).`;
-        if (primaryBtn) primaryBtn.innerHTML = `<span>🔄 Réactualiser ma position</span>`;
-      }
-
-      // Store detected location in localStorage
-      try {
-        localStorage.setItem(STORAGE_LOCATION_KEY, JSON.stringify({
-          lat: lat.toFixed(4),
-          lon: lon.toFixed(4),
-          city: cityName,
-        }));
-      } catch (e) {
-        console.warn("Failed to store location:", e);
-      }
-
-      if (autoFetch) {
-        fetchSmapData();
-      }
+      // Mark chips inactive
+      document.querySelectorAll(".city-chip").forEach(c => c.classList.remove("active"));
     },
-    (error) => {
-      console.warn("Geolocation error:", error);
+    (err) => {
+      console.warn("Geolocation denied or error:", err);
       if (feedback && feedbackText) {
         if (userTriggered) {
           feedback.hidden = false;
-          feedback.className = "gps-feedback-bar error";
-          feedbackText.textContent = `⚠️ Impossible d'obtenir la position GPS (${error.message}). Veuillez autoriser la localisation ou saisir votre ville manuellement.`;
+          feedbackText.textContent = `⚠️ Impossible d'obtenir votre position GPS (${err.message}). Veuillez sélectionner une ville manuellement.`;
         } else {
           feedback.hidden = true;
         }
       }
-
-      // If initial auto-detect failed or was denied, and no data is loaded yet, load initial example
-      if (!currentSmapData) {
-        if (!document.getElementById("smap-lat").value) {
-          document.getElementById("smap-lat").value = "33.8900";
-          document.getElementById("smap-lon").value = "-5.5500";
-          document.getElementById("smap-city").value = "Meknes, Morocco";
-          const meknesBtn = document.getElementById("btn-preset-meknes");
-          if (meknesBtn) meknesBtn.classList.add("active");
-        }
-        fetchSmapData();
-      }
     },
-    {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 60000,
-    }
+    { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
   );
 }
 
-function initLocationStartup() {
-  const saved = localStorage.getItem(STORAGE_LOCATION_KEY);
-  if (saved) {
-    try {
-      const loc = JSON.parse(saved);
-      if (loc.lat && loc.lon) {
-        document.getElementById("smap-lat").value = Number(loc.lat).toFixed(4);
-        document.getElementById("smap-lon").value = Number(loc.lon).toFixed(4);
-        document.getElementById("smap-city").value = loc.city || `${Number(loc.lat).toFixed(4)}, ${Number(loc.lon).toFixed(4)}`;
-
-        document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
-        const btnGps = document.getElementById("btn-get-my-location");
-        if (btnGps) btnGps.classList.add("active");
-
-        const banner = document.getElementById("location-onboarding-banner");
-        if (banner) {
-          banner.classList.add("detected");
-          const titleEl = document.getElementById("banner-geo-title");
-          const descEl = document.getElementById("banner-geo-desc");
-          const primaryBtn = document.getElementById("btn-banner-get-location");
-          if (titleEl) titleEl.textContent = `📍 Localisation Mémorisée : ${loc.city}`;
-          if (descEl) descEl.textContent = `Coordonnées : ${Number(loc.lat).toFixed(4)}°N, ${Number(loc.lon).toFixed(4)}°W. Cliquez sur "Actualiser" pour relancer la détection GPS.`;
-          if (primaryBtn) primaryBtn.innerHTML = `<span>🔄 Réactualiser ma position</span>`;
-        }
-
-        fetchSmapData();
-        return;
-      }
-    } catch (e) {
-      console.warn("Could not read saved location:", e);
-    }
-  }
-
-  // If no saved location, attempt auto-detect via navigator.geolocation
-  if ("geolocation" in navigator) {
-    getUserLocation({ autoFetch: true, userTriggered: false });
-  } else {
-    document.getElementById("smap-lat").value = "33.8900";
-    document.getElementById("smap-lon").value = "-5.5500";
-    document.getElementById("smap-city").value = "Meknes, Morocco";
-    const meknesBtn = document.getElementById("btn-preset-meknes");
-    if (meknesBtn) meknesBtn.classList.add("active");
-    fetchSmapData();
-  }
-}
-
 /* ==========================================================================
-   Preset Locations
+   VUE 3 : PAGE DÉDIÉE : MODE AGRICOLE (16 variables)
    ========================================================================== */
-function initPresets() {
-  const presets = {
-    meknes: { name: "Meknes, Morocco", lat: 33.8900, lon: -5.5500 },
-    gharbi: { name: "Sidi Slimane, Gharb", lat: 34.3000, lon: -5.9000 },
-    tadla: { name: "Beni Mellal, Tadla", lat: 32.4000, lon: -6.5000 },
-    souss: { name: "Taroudant, Souss", lat: 30.4000, lon: -9.1000 },
-  };
-
-  document.querySelectorAll(".preset-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      if (btn.id === "btn-get-my-location") return; // Handled separately
-      document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      const key = btn.id.replace("btn-preset-", "");
-      const preset = presets[key];
-      if (preset) {
-        document.getElementById("smap-city").value = preset.name;
-        document.getElementById("smap-lat").value = preset.lat.toFixed(4);
-        document.getElementById("smap-lon").value = preset.lon.toFixed(4);
-
-        // Remove GPS detected styling from banner
-        const banner = document.getElementById("location-onboarding-banner");
-        if (banner) banner.classList.remove("detected");
-        const feedback = document.getElementById("gps-status-feedback");
-        if (feedback) feedback.hidden = true;
-      }
+function initAgriViewControls() {
+  // Back to choice
+  const btnBack = document.getElementById("btn-back-from-agri");
+  if (btnBack) {
+    btnBack.addEventListener("click", () => {
+      updateChoiceLocationDisplay();
+      showSmapView("choice");
     });
-  });
-
-  // Geocode button
-  document.getElementById("btn-geocode").addEventListener("click", async () => {
-    const city = document.getElementById("smap-city").value.trim();
-    if (!city) return;
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=jsonv2&limit=1`);
-      const data = await res.json();
-      if (data && data.length > 0) {
-        document.getElementById("smap-lat").value = parseFloat(data[0].lat).toFixed(4);
-        document.getElementById("smap-lon").value = parseFloat(data[0].lon).toFixed(4);
-        document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
-      } else {
-        alert("Ville non trouvée par Nominatim.");
-      }
-    } catch (e) {
-      console.warn("Geocoding failed:", e);
-    }
-  });
-}
-
-/* ==========================================================================
-   SMAP Data Extraction & Rendering
-   ========================================================================== */
-function initSmapControls() {
-  const yearSelect = document.getElementById("smap-year");
-  const customDateContainer = document.getElementById("custom-date-container");
-  
-  yearSelect.addEventListener("change", () => {
-    if (yearSelect.value === "custom") {
-      customDateContainer.hidden = false;
-    } else {
-      customDateContainer.hidden = true;
-      const y = parseInt(yearSelect.value);
-      document.getElementById("smap-start").value = `${y}-01-01`;
-      document.getElementById("smap-end").value = `${y}-12-31`;
-    }
-  });
-
-  document.getElementById("smap-form").addEventListener("submit", (e) => {
-    e.preventDefault();
-    fetchSmapData();
-  });
-
-  // Dual axis update button
-  document.getElementById("btn-update-cross").addEventListener("click", () => {
-    if (currentSmapData) renderCrossChart(currentSmapData);
-  });
-
-  // Table search
-  document.getElementById("table-search").addEventListener("input", (e) => {
-    filterTable(e.target.value.toLowerCase());
-  });
-
-  // Table Export buttons
-  document.getElementById("btn-export-csv").addEventListener("click", exportTableToCSV);
-  document.getElementById("btn-export-json").addEventListener("click", exportTableToJSON);
-}
-
-async function fetchSmapData() {
-  const loader = document.getElementById("smap-loader");
-  const loaderText = document.getElementById("smap-loader-text");
-  const errorBox = document.getElementById("smap-error");
-  const banner = document.getElementById("smap-metrics-banner");
-  const submitBtn = document.getElementById("btn-run-smap");
-
-  loader.hidden = false;
-  errorBox.hidden = true;
-  submitBtn.disabled = true;
-
-  const lat = document.getElementById("smap-lat").value;
-  const lon = document.getElementById("smap-lon").value;
-  const city = document.getElementById("smap-city").value;
-  const year = document.getElementById("smap-year").value;
-  const mode = document.getElementById("smap-mode").value;
-  const scale = document.getElementById("smap-scale").value;
-  const refresh = document.getElementById("smap-refresh").checked;
-
-  if (loaderText) {
-    loaderText.textContent = `Interrogation de Google Earth Engine pour ${city || 'votre position'} (NASA/SMAP/SPL4SMGP/008)...`;
   }
 
-  let url = `/api/smap-gee/timeseries?latitude=${lat}&longitude=${lon}&city=${encodeURIComponent(city)}&mode=${mode}&scale=${scale}&refresh=${refresh}`;
-  if (year !== "custom") {
-    url += `&year=${year}`;
-  } else {
-    const start = document.getElementById("smap-start").value;
-    const end = document.getElementById("smap-end").value;
-    url += `&start_date=${start}&end_date=${end}`;
+  // Switch to scientific mode directly
+  const btnSwitch = document.getElementById("btn-switch-to-sci");
+  if (btnSwitch) {
+    btnSwitch.addEventListener("click", async () => {
+      await loadAndDisplaySciMode();
+    });
   }
 
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || `Erreur serveur HTTP ${response.status}`);
-    }
-
-    currentSmapData = data;
-    renderAllViews(data);
-
-    // Update metrics banner
-    banner.hidden = false;
-    document.getElementById("metric-status").textContent = "200 OK (Succès)";
-    document.getElementById("metric-cache").textContent = data.cached ? "HIT (Cache Disque)" : "MISS (Requête GEE)";
-    document.getElementById("metric-time").textContent = `${data.processing_time_ms} ms`;
-    document.getElementById("metric-obs").textContent = `${data.monthly_series.reduce((acc, m) => acc + m.observation_count, 0)} obs. 3h`;
-    document.getElementById("metric-coords").textContent = `${data.location.requested_latitude}°N, ${data.location.requested_longitude}°E`;
-
-  } catch (err) {
-    console.error("SMAP Fetch error:", err);
-    errorBox.hidden = false;
-    document.getElementById("error-title").textContent = "Échec d'extraction NASA SMAP";
-    document.getElementById("error-message").textContent = err.message;
-  } finally {
-    loader.hidden = true;
-    submitBtn.disabled = false;
+  // Year select
+  const selectYear = document.getElementById("agri-year-select");
+  if (selectYear) {
+    selectYear.addEventListener("change", async () => {
+      AppState.year = selectYear.value;
+      syncYearSelects(AppState.year);
+      await loadAndDisplayAgriMode(true);
+    });
   }
 }
 
-function renderAllViews(data) {
-  renderSummaryCards(data);
-  renderAnnualSummaryTable(data);
-  renderMoistureChart(data);
-  renderDroughtCharts(data);
-  renderTemperatureChart(data);
-  renderWaterFluxChart(data);
-  populateCrossSelectors(data);
-  renderCrossChart(data);
-  renderDetailedTable(data);
+async function loadAndDisplayAgriMode(forceReload = false) {
+  // Update header info
+  document.getElementById("agri-current-loc").textContent = `📍 ${AppState.location.city} (${AppState.location.lat.toFixed(4)}°N, ${AppState.location.lon.toFixed(4)}°W)`;
+  document.getElementById("agri-year-select").value = AppState.year;
+
+  // Check if we already have the exact data cached in memory
+  const isCached = !forceReload && AppState.agriData && 
+    AppState.agriData.location.requested_latitude === AppState.location.lat &&
+    AppState.agriData.location.requested_longitude === AppState.location.lon &&
+    AppState.agriData.year == AppState.year;
+
+  if (!isCached) {
+    const data = await fetchSmapApi({
+      mode: "agricultural",
+      year: AppState.year,
+      lat: AppState.location.lat,
+      lon: AppState.location.lon,
+      city: AppState.location.city
+    });
+    if (!data) return;
+    AppState.agriData = data;
+  }
+
+  renderAgriDashboard(AppState.agriData);
+  showSmapView("agri");
 }
 
-/* ==========================================================================
-   Overview Summary Cards
-   ========================================================================== */
-function renderSummaryCards(data) {
-  const container = document.getElementById("cards-container");
+function renderAgriDashboard(data) {
+  // Status strip
+  document.getElementById("agri-strip-cache").textContent = data.cached ? "Cache : Disque (HIT)" : "Cache : Requête GEE (MISS)";
+  document.getElementById("agri-strip-obs").textContent = `${data.monthly_series.reduce((acc, m) => acc + m.observation_count, 0)} obs. 3h`;
+  document.getElementById("agri-strip-time").textContent = `${data.processing_time_ms} ms`;
+
+  // 1. Render 16 Summary Cards
+  renderAgriCards(data);
+
+  // 2. Render Charts
+  renderAgriMoistureChart(data);
+  renderAgriDroughtCharts(data);
+  renderAgriWaterChart(data);
+
+  // 3. Render Table
+  renderAgriTable(data);
+}
+
+function renderAgriCards(data) {
+  const container = document.getElementById("agri-cards-container");
   container.innerHTML = "";
 
   if (!data.summary_cards || data.summary_cards.length === 0) {
-    container.innerHTML = `<p class="hint">Aucune carte disponible pour cette période.</p>`;
+    container.innerHTML = `<p class="hint">Aucune carte agricole disponible.</p>`;
     return;
   }
 
   data.summary_cards.forEach(card => {
     const cardEl = document.createElement("div");
     cardEl.className = `smap-card ${card.status_tone || 'normal'}`;
-    
+
     let changeHtml = `<span class="card-change">Stable</span>`;
     if (card.change_vs_previous_month_pct !== null) {
       const isPos = card.change_vs_previous_month_pct > 0;
@@ -463,7 +459,7 @@ function renderSummaryCards(data) {
       </div>
       <div class="card-bottom">
         ${changeHtml}
-        <span class="card-darija-pill">💡 الدارجة المغربية</span>
+        <span class="card-darija-pill">💡 الشرح بالدارجة</span>
       </div>
     `;
 
@@ -475,61 +471,20 @@ function renderSummaryCards(data) {
   });
 }
 
-function renderAnnualSummaryTable(data) {
-  const tbody = document.getElementById("tbody-annual-summary");
-  tbody.innerHTML = "";
-  document.getElementById("annual-period-badge").textContent = `${data.start_date} à ${data.end_date}`;
+function renderAgriMoistureChart(data) {
+  destroyChart("agri-moisture");
+  if (typeof Chart === "undefined") return;
 
-  if (!data.annual_summary || data.annual_summary.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8">Aucune donnée annuelle.</td></tr>`;
-    return;
-  }
-
-  data.annual_summary.forEach(item => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><strong>${item.name_fr}</strong> <small style="color:#64748b">(${item.variable_id})</small></td>
-      <td><strong>${item.mean !== null ? item.mean : '—'}</strong></td>
-      <td>${item.min !== null ? item.min : '—'}</td>
-      <td>${item.max !== null ? item.max : '—'}</td>
-      <td>${item.display_unit}</td>
-      <td><span class="status-badge ${item.completeness_pct >= 90 ? 'optimal' : 'warning'}">${item.completeness_pct}%</span></td>
-      <td>${item.seasonal_trend || '—'}</td>
-      <td><button type="button" class="btn-sm" style="font-family:var(--font-arabic);font-weight:700">💡 الشرح</button></td>
-    `;
-
-    tr.addEventListener("click", () => {
-      openDarijaDrawer(item.variable_id, item.mean, "Moyenne annuelle", data.location.name);
-    });
-
-    tbody.appendChild(tr);
-  });
-}
-
-/* ==========================================================================
-   Interactive Scientific Charts (Chart.js)
-   ========================================================================== */
-function destroyChart(key) {
-  if (chartInstances[key]) {
-    chartInstances[key].destroy();
-    chartInstances[key] = null;
-  }
-}
-
-function renderMoistureChart(data) {
-  destroyChart("moisture");
-  if (typeof Chart === "undefined") {
-    console.warn("Chart.js is not loaded yet.");
-    return;
-  }
-  const ctx = document.getElementById("chart-moisture-evolution").getContext("2d");
+  const canvas = document.getElementById("chart-agri-moisture");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
   const labels = data.monthly_series.map(m => m.month_name);
-  
+
   const surfData = data.monthly_series.map(m => m.display_values["sm_surface"]);
   const rootData = data.monthly_series.map(m => m.display_values["sm_rootzone"]);
   const profData = data.monthly_series.map(m => m.display_values["sm_profile"]);
 
-  chartInstances["moisture"] = new Chart(ctx, {
+  chartInstances["agri-moisture"] = new Chart(ctx, {
     type: "line",
     data: {
       labels,
@@ -589,84 +544,125 @@ function renderMoistureChart(data) {
     }
   });
 
-  // Insight text
-  const meanRoot = rootData.filter(v => v !== null);
-  if (meanRoot.length > 0) {
-    const avg = (meanRoot.reduce((a, b) => a + b, 0) / meanRoot.length).toFixed(3);
-    document.getElementById("insight-moisture").textContent = 
-      `Humidité moyenne de la zone racinaire : ${avg} m³/m³. Les pics d'humidité correspondent aux précipitations hivernales/printanières, tandis que les valeurs estivales reflètent l'épuisement progressif de la réserve utile.`;
+  // Agronomic insight
+  const validRoot = rootData.filter(v => v !== null);
+  if (validRoot.length > 0) {
+    const avg = (validRoot.reduce((a, b) => a + b, 0) / validRoot.length).toFixed(3);
+    const insightEl = document.getElementById("agri-insight-moisture");
+    if (insightEl) {
+      insightEl.textContent = `Humidité moyenne de la zone racinaire : ${avg} m³/m³. Les pics correspondent à la recharge hivernale, tandis que la baisse printanière indique la reprise végétative et l'absorption transpiratoire des cultures.`;
+    }
   }
 }
 
-function renderDroughtCharts(data) {
-  destroyChart("drought");
-  destroyChart("wetness");
-  destroyChart("anomalies");
-  if (typeof Chart === "undefined") {
-    console.warn("Chart.js is not loaded yet.");
-    return;
-  }
+function renderAgriDroughtCharts(data) {
+  destroyChart("agri-drought");
+  destroyChart("agri-wetness");
+  if (typeof Chart === "undefined") return;
 
   const labels = data.monthly_series.map(m => m.month_name);
 
-  // 1. Percentiles Chart
-  const pctlData = data.monthly_series.map(m => m.display_values["sm_rootzone_pctl"]);
-  const ctxPctl = document.getElementById("chart-drought-percentiles").getContext("2d");
-  
-  chartInstances["drought"] = new Chart(ctxPctl, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [{
-        label: "Percentile Racinaire (%)",
-        data: pctlData,
-        backgroundColor: pctlData.map(v => v < 20 ? "#dc2626" : (v < 40 ? "#f59e0b" : "#10b981")),
-        borderRadius: 4,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => `Percentile: ${ctx.raw}% (${ctx.raw < 20 ? 'Sécheresse Sévère' : ctx.raw < 40 ? 'Sécheresse Modérée' : 'Normal'})`
+  // 1. Drought percentiles
+  const pctlCanvas = document.getElementById("chart-agri-drought-pctl");
+  if (pctlCanvas) {
+    const pctlData = data.monthly_series.map(m => m.display_values["sm_rootzone_pctl"]);
+    chartInstances["agri-drought"] = new Chart(pctlCanvas.getContext("2d"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{
+          label: "Percentile Racinaire (%)",
+          data: pctlData,
+          backgroundColor: pctlData.map(v => {
+            if (v === null) return "#cbd5e1";
+            if (v < 20) return "#dc2626";
+            if (v < 40) return "#f59e0b";
+            return "#16a34a";
+          }),
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            min: 0,
+            max: 100,
+            title: { display: true, text: "Percentile (%)" }
           }
         }
-      },
-      scales: {
-        y: { title: { display: true, text: "Percentile (%)" }, min: 0, max: 100 }
       }
-    }
-  });
+    });
+  }
 
-  // 2. Wetness & Wilting Chart
-  const wetData = data.monthly_series.map(m => m.display_values["sm_rootzone_wetness"]);
-  const wiltData = data.monthly_series.map(m => m.display_values["land_fraction_wilting"]);
-  const ctxWet = document.getElementById("chart-wetness-wilting").getContext("2d");
-
-  chartInstances["wetness"] = new Chart(ctxWet, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "Degré de Saturation Racinaire (%)",
+  // 2. Wetness degree
+  const wetCanvas = document.getElementById("chart-agri-wetness");
+  if (wetCanvas) {
+    const wetData = data.monthly_series.map(m => m.display_values["sm_rootzone_wetness"]);
+    chartInstances["agri-wetness"] = new Chart(wetCanvas.getContext("2d"), {
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          label: "Saturation Sol (0-1)",
           data: wetData,
           borderColor: "#0284c7",
           backgroundColor: "rgba(2, 132, 199, 0.1)",
           fill: true,
           tension: 0.3,
-          borderWidth: 2.5
+          pointRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            min: 0,
+            max: 1.0,
+            title: { display: true, text: "Degré de Saturation (0 à 1)" }
+          }
+        }
+      }
+    });
+  }
+}
+
+function renderAgriWaterChart(data) {
+  destroyChart("agri-water");
+  if (typeof Chart === "undefined") return;
+
+  const canvas = document.getElementById("chart-agri-water-flux");
+  if (!canvas) return;
+
+  const labels = data.monthly_series.map(m => m.month_name);
+  const etData = data.monthly_series.map(m => m.display_values["evapotranspiration"]);
+  const infData = data.monthly_series.map(m => m.display_values["infiltration"]);
+  const runData = data.monthly_series.map(m => m.display_values["surface_runoff"]);
+
+  chartInstances["agri-water"] = new Chart(canvas.getContext("2d"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Évapotranspiration (ET)",
+          data: etData,
+          backgroundColor: "#f97316",
+          borderRadius: 4
         },
         {
-          label: "Surface au point de flétrissement (%)",
-          data: wiltData,
-          borderColor: "#dc2626",
-          tension: 0.3,
-          borderWidth: 2,
-          borderDash: [4, 4]
+          label: "Infiltration Sol",
+          data: infData,
+          backgroundColor: "#16a34a",
+          borderRadius: 4
+        },
+        {
+          label: "Ruissellement Surface",
+          data: runData,
+          backgroundColor: "#3b82f6",
+          borderRadius: 4
         }
       ]
     },
@@ -674,76 +670,266 @@ function renderDroughtCharts(data) {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
-        y: { title: { display: true, text: "Pourcentage (%)" }, min: 0, max: 100 }
-      }
-    }
-  });
-
-  // 3. Anomalies Diverging Bar Chart
-  const anomData = data.monthly_series.map(m => m.display_values["sm_surface_anomaly"]);
-  const ctxAnom = document.getElementById("chart-anomalies").getContext("2d");
-
-  chartInstances["anomalies"] = new Chart(ctxAnom, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [{
-        label: "Anomalie (m³/m³)",
-        data: anomData,
-        backgroundColor: anomData.map(v => v >= 0 ? "#10b981" : "#ef4444"),
-        borderRadius: 4
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: { title: { display: true, text: "Anomalie d'humidité (m³/m³)" } }
+        y: {
+          title: { display: true, text: "Flux (mm/jour)" },
+          min: 0
+        }
       }
     }
   });
 }
 
-function renderTemperatureChart(data) {
-  destroyChart("temp");
-  if (typeof Chart === "undefined") return;
-  const ctx = document.getElementById("chart-soil-temp").getContext("2d");
-  const labels = data.monthly_series.map(m => m.month_name);
+function renderAgriTable(data) {
+  const tbody = document.getElementById("tbody-agri-summary");
+  if (!tbody) return;
+  tbody.innerHTML = "";
 
-  chartInstances["temp"] = new Chart(ctx, {
+  if (!data.annual_summary || data.annual_summary.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8">Aucune donnée disponible.</td></tr>`;
+    return;
+  }
+
+  data.annual_summary.forEach(item => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><strong>${item.name_fr}</strong> <small style="color:#64748b">(${item.variable_id})</small></td>
+      <td><strong>${item.mean !== null ? item.mean : '—'}</strong></td>
+      <td>${item.min !== null ? item.min : '—'}</td>
+      <td>${item.max !== null ? item.max : '—'}</td>
+      <td>${item.display_unit}</td>
+      <td><span class="status-badge ${item.completeness_pct >= 90 ? 'optimal' : 'warning'}">${item.completeness_pct}%</span></td>
+      <td>${item.seasonal_trend || '—'}</td>
+      <td><button type="button" class="btn-sm" style="font-family:var(--font-arabic);font-weight:700">💡 الشرح بالدارجة</button></td>
+    `;
+
+    tr.addEventListener("click", () => {
+      openDarijaDrawer(item.variable_id, item.mean, "Moyenne annuelle", data.location.name);
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
+/* ==========================================================================
+   VUE 4 : PAGE DÉDIÉE : MODE SCIENTIFIQUE (46 variables)
+   ========================================================================== */
+function initSciViewControls() {
+  // Back to choice
+  const btnBack = document.getElementById("btn-back-from-sci");
+  if (btnBack) {
+    btnBack.addEventListener("click", () => {
+      updateChoiceLocationDisplay();
+      showSmapView("choice");
+    });
+  }
+
+  // Switch to agricultural mode directly
+  const btnSwitch = document.getElementById("btn-switch-to-agri");
+  if (btnSwitch) {
+    btnSwitch.addEventListener("click", async () => {
+      await loadAndDisplayAgriMode();
+    });
+  }
+
+  // Year select
+  const selectYear = document.getElementById("sci-year-select");
+  if (selectYear) {
+    selectYear.addEventListener("change", async () => {
+      AppState.year = selectYear.value;
+      syncYearSelects(AppState.year);
+      await loadAndDisplaySciMode(true);
+    });
+  }
+
+  // Cross comparator button
+  const btnCross = document.getElementById("sci-btn-update-cross");
+  if (btnCross) {
+    btnCross.addEventListener("click", () => {
+      if (AppState.sciData) renderSciCrossChart(AppState.sciData);
+    });
+  }
+
+  // Table search
+  const tableSearch = document.getElementById("sci-table-search");
+  if (tableSearch) {
+    tableSearch.addEventListener("input", (e) => {
+      const q = e.target.value.toLowerCase();
+      document.querySelectorAll("#tbody-sci-detailed tr").forEach(r => {
+        r.style.display = r.textContent.toLowerCase().includes(q) ? "" : "none";
+      });
+    });
+  }
+
+  // Table exports
+  const btnCsv = document.getElementById("sci-btn-export-csv");
+  if (btnCsv) {
+    btnCsv.addEventListener("click", () => exportTableToCSV(AppState.sciData));
+  }
+  const btnJson = document.getElementById("sci-btn-export-json");
+  if (btnJson) {
+    btnJson.addEventListener("click", () => exportTableToJSON(AppState.sciData));
+  }
+}
+
+async function loadAndDisplaySciMode(forceReload = false) {
+  // Update header info
+  document.getElementById("sci-current-loc").textContent = `📍 ${AppState.location.city} (${AppState.location.lat.toFixed(4)}°N, ${AppState.location.lon.toFixed(4)}°W)`;
+  document.getElementById("sci-year-select").value = AppState.year;
+
+  const isCached = !forceReload && AppState.sciData && 
+    AppState.sciData.location.requested_latitude === AppState.location.lat &&
+    AppState.sciData.location.requested_longitude === AppState.location.lon &&
+    AppState.sciData.year == AppState.year;
+
+  if (!isCached) {
+    const data = await fetchSmapApi({
+      mode: "scientific",
+      year: AppState.year,
+      lat: AppState.location.lat,
+      lon: AppState.location.lon,
+      city: AppState.location.city
+    });
+    if (!data) return;
+    AppState.sciData = data;
+  }
+
+  renderSciDashboard(AppState.sciData);
+  showSmapView("sci");
+}
+
+function renderSciDashboard(data) {
+  // Status strip
+  document.getElementById("sci-strip-cache").textContent = data.cached ? "Cache : Disque (HIT)" : "Cache : Requête GEE (MISS)";
+  document.getElementById("sci-strip-obs").textContent = `46 variables · ${data.monthly_series.reduce((acc, m) => acc + m.observation_count, 0)} obs. 3h`;
+  document.getElementById("sci-strip-time").textContent = `${data.processing_time_ms} ms`;
+
+  // 1. Build Category Chips & Render 46 Cards
+  renderSciCategoryChips(data);
+  renderSciCards(data, AppState.activeSciCatFilter);
+
+  // 2. Charts
+  renderSciTempChart(data);
+  renderSciFluxChart(data);
+  populateSciCrossSelectors(data);
+  renderSciCrossChart(data);
+
+  // 3. Detailed Full Table
+  renderSciDetailedTable(data);
+}
+
+function renderSciCategoryChips(data) {
+  const container = document.getElementById("sci-category-filter-chips");
+  if (!container) return;
+
+  const categories = {
+    all: { name: `Toutes (${data.summary_cards.length})` },
+    soil_moisture: { name: "💧 Humidité du Sol" },
+    soil_wetness: { name: "🌊 Saturation" },
+    anomalies: { name: "🌵 Sécheresse & Anomalies" },
+    soil_temperature: { name: "🌡️ Températures Multicouches" },
+    evapotranspiration: { name: "☁️ Évapotranspiration" },
+    water_fluxes: { name: "💧 Flux Hydriques" },
+    vegetation: { name: "🌿 Végétation" },
+    energy_fluxes: { name: "⚡ Bilan Radiatif & Énergie" },
+    biogeochemistry: { name: "🌱 Carbone / GPP" },
+    ancillary: { name: "🛰️ Données Auxiliaires" }
+  };
+
+  container.innerHTML = "";
+  Object.entries(categories).forEach(([key, val]) => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = `cat-filter-chip ${key === AppState.activeSciCatFilter ? 'active' : ''}`;
+    chip.textContent = val.name;
+    chip.dataset.cat = key;
+
+    chip.addEventListener("click", () => {
+      container.querySelectorAll(".cat-filter-chip").forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+      AppState.activeSciCatFilter = key;
+      renderSciCards(data, key);
+    });
+
+    container.appendChild(chip);
+  });
+}
+
+function renderSciCards(data, catFilter) {
+  const container = document.getElementById("sci-cards-container");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const filteredCards = data.summary_cards.filter(c => {
+    if (!catFilter || catFilter === "all") return true;
+    return c.category === catFilter;
+  });
+
+  if (filteredCards.length === 0) {
+    container.innerHTML = `<p class="hint">Aucune variable dans cette catégorie.</p>`;
+    return;
+  }
+
+  filteredCards.forEach(card => {
+    const cardEl = document.createElement("div");
+    cardEl.className = `smap-card ${card.status_tone || 'normal'}`;
+
+    let changeHtml = `<span class="card-change">Stable</span>`;
+    if (card.change_vs_previous_month_pct !== null) {
+      const isPos = card.change_vs_previous_month_pct > 0;
+      const sign = isPos ? "+" : "";
+      const cls = isPos ? "positive" : "negative";
+      changeHtml = `<span class="card-change ${cls}">${sign}${card.change_vs_previous_month_pct}% vs mois préc.</span>`;
+    }
+
+    cardEl.innerHTML = `
+      <div class="card-top">
+        <span class="card-title">${card.title}</span>
+        <span class="card-tone-pill status-badge ${card.status_tone}">${card.category}</span>
+      </div>
+      <div class="card-value-row">
+        <span class="card-value">${card.value !== null ? card.value : '—'}</span>
+        <span class="card-unit">${card.display_unit}</span>
+      </div>
+      <div class="card-bottom">
+        ${changeHtml}
+        <span class="card-darija-pill">💡 الشرح بالدارجة</span>
+      </div>
+    `;
+
+    cardEl.addEventListener("click", () => {
+      openDarijaDrawer(card.id, card.value, card.period, data.location.name);
+    });
+
+    container.appendChild(cardEl);
+  });
+}
+
+function renderSciTempChart(data) {
+  destroyChart("sci-temp");
+  if (typeof Chart === "undefined") return;
+
+  const canvas = document.getElementById("chart-sci-temp");
+  if (!canvas) return;
+
+  const labels = data.monthly_series.map(m => m.month_name);
+  const tSurf = data.monthly_series.map(m => m.display_values["temp_surface"]);
+  const tL1 = data.monthly_series.map(m => m.display_values["temp_layer1"]);
+  const tL2 = data.monthly_series.map(m => m.display_values["temp_layer2"]);
+  const tL3 = data.monthly_series.map(m => m.display_values["temp_layer3"]);
+  const tL4 = data.monthly_series.map(m => m.display_values["temp_layer4"]);
+  const tBed = data.monthly_series.map(m => m.display_values["temp_bedrock"]);
+
+  chartInstances["sci-temp"] = new Chart(canvas.getContext("2d"), {
     type: "line",
     data: {
       labels,
       datasets: [
-        {
-          label: "Surface (°C)",
-          data: data.monthly_series.map(m => m.display_values["surface_temp"]),
-          borderColor: "#f97316",
-          tension: 0.3,
-          borderWidth: 2,
-        },
-        {
-          label: "Couche 1 (0-10 cm) - Lit de Semence",
-          data: data.monthly_series.map(m => m.display_values["soil_temp_layer1"]),
-          borderColor: "#ea580c",
-          tension: 0.3,
-          borderWidth: 3,
-        },
-        {
-          label: "Couche 2 (10-20 cm)",
-          data: data.monthly_series.map(m => m.display_values["soil_temp_layer2"]),
-          borderColor: "#ca8a04",
-          tension: 0.3,
-          borderWidth: 2,
-        },
-        {
-          label: "Couche 4 (40-100 cm)",
-          data: data.monthly_series.map(m => m.display_values["soil_temp_layer4"]),
-          borderColor: "#475569",
-          borderDash: [5, 5],
-          tension: 0.3,
-          borderWidth: 2,
-        }
+        { label: "Surface", data: tSurf, borderColor: "#ef4444", tension: 0.3, pointRadius: 3 },
+        { label: "Couche 1 (0-10 cm)", data: tL1, borderColor: "#f97316", tension: 0.3, pointRadius: 3 },
+        { label: "Couche 2 (10-20 cm)", data: tL2, borderColor: "#eab308", tension: 0.3, pointRadius: 3 },
+        { label: "Couche 3 (20-40 cm)", data: tL3, borderColor: "#10b981", tension: 0.3, pointRadius: 3 },
+        { label: "Couche 4 (40-100 cm)", data: tL4, borderColor: "#06b6d4", tension: 0.3, pointRadius: 3 },
+        { label: "Bedrock (Roche Mère)", data: tBed, borderColor: "#6366f1", borderDash: [4, 4], tension: 0.3, pointRadius: 2 }
       ]
     },
     options: {
@@ -756,101 +942,104 @@ function renderTemperatureChart(data) {
   });
 }
 
-function renderWaterFluxChart(data) {
-  destroyChart("water");
+function renderSciFluxChart(data) {
+  destroyChart("sci-flux");
   if (typeof Chart === "undefined") return;
-  const ctx = document.getElementById("chart-water-fluxes").getContext("2d");
-  const labels = data.monthly_series.map(m => m.month_name);
 
-  chartInstances["water"] = new Chart(ctx, {
-    type: "bar",
+  const canvas = document.getElementById("chart-sci-flux");
+  if (!canvas) return;
+
+  const labels = data.monthly_series.map(m => m.month_name);
+  const netRad = data.monthly_series.map(m => m.display_values["net_downward_radiation"]);
+  const latHeat = data.monthly_series.map(m => m.display_values["latent_heat_flux"]);
+  const sensHeat = data.monthly_series.map(m => m.display_values["sensible_heat_flux"]);
+
+  chartInstances["sci-flux"] = new Chart(canvas.getContext("2d"), {
+    type: "line",
     data: {
       labels,
       datasets: [
-        {
-          label: "Précipitations (mm/jour)",
-          data: data.monthly_series.map(m => m.display_values["precipitation_total_surface_flux"]),
-          backgroundColor: "#3b82f6",
-          borderRadius: 4
-        },
-        {
-          label: "Évapotranspiration ET (mm/jour)",
-          data: data.monthly_series.map(m => m.display_values["land_evapotranspiration_flux"]),
-          backgroundColor: "#f59e0b",
-          borderRadius: 4
-        },
-        {
-          label: "Infiltration dans le sol (mm/jour)",
-          data: data.monthly_series.map(m => m.display_values["soil_water_infiltration_flux"]),
-          backgroundColor: "#10b981",
-          borderRadius: 4
-        },
-        {
-          label: "Ruissellement de surface (mm/jour)",
-          data: data.monthly_series.map(m => m.display_values["overland_runoff_flux"]),
-          backgroundColor: "#ef4444",
-          borderRadius: 4
-        }
+        { label: "Rayonnement Net Descendant", data: netRad, borderColor: "#dc2626", fill: false, tension: 0.3 },
+        { label: "Chaleur Latente (Évaporation)", data: latHeat, borderColor: "#2563eb", fill: false, tension: 0.3 },
+        { label: "Chaleur Sensible", data: sensHeat, borderColor: "#eab308", fill: false, tension: 0.3 }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
-        y: { title: { display: true, text: "Flux d'eau (mm/jour)" }, min: 0 }
+        y: { title: { display: true, text: "Flux Énergétique (W/m²)" } }
       }
     }
   });
 }
 
-function populateCrossSelectors(data) {
-  const sel1 = document.getElementById("select-var-y1");
-  const sel2 = document.getElementById("select-var-y2");
+function populateSciCrossSelectors(data) {
+  const sel1 = document.getElementById("sci-select-y1");
+  const sel2 = document.getElementById("sci-select-y2");
+  if (!sel1 || !sel2) return;
+
+  const vars = data.variables || [];
   sel1.innerHTML = "";
   sel2.innerHTML = "";
 
-  data.variables.forEach(v => {
-    sel1.add(new Option(`${v.name_fr} (${v.display_unit})`, v.id));
-    sel2.add(new Option(`${v.name_fr} (${v.display_unit})`, v.id));
+  vars.forEach(v => {
+    const opt1 = document.createElement("option");
+    opt1.value = v.id;
+    opt1.textContent = `${v.name_fr} (${v.display_unit})`;
+    sel1.appendChild(opt1);
+
+    const opt2 = document.createElement("option");
+    opt2.value = v.id;
+    opt2.textContent = `${v.name_fr} (${v.display_unit})`;
+    sel2.appendChild(opt2);
   });
 
-  // Defaults
-  sel1.value = "sm_rootzone";
-  sel2.value = "land_evapotranspiration_flux";
+  if (vars.some(v => v.id === "sm_rootzone")) sel1.value = "sm_rootzone";
+  if (vars.some(v => v.id === "evapotranspiration")) sel2.value = "evapotranspiration";
 }
 
-function renderCrossChart(data) {
-  destroyChart("cross");
+function renderSciCrossChart(data) {
+  destroyChart("sci-cross");
   if (typeof Chart === "undefined") return;
-  const var1 = document.getElementById("select-var-y1").value;
-  const var2 = document.getElementById("select-var-y2").value;
-  const meta1 = data.variables.find(v => v.id === var1);
-  const meta2 = data.variables.find(v => v.id === var2);
 
-  const ctx = document.getElementById("chart-cross-variables").getContext("2d");
+  const canvas = document.getElementById("chart-sci-cross");
+  if (!canvas) return;
+
+  const sel1 = document.getElementById("sci-select-y1");
+  const sel2 = document.getElementById("sci-select-y2");
+  const id1 = sel1 ? sel1.value : "sm_rootzone";
+  const id2 = sel2 ? sel2.value : "evapotranspiration";
+
+  const v1Meta = data.variables.find(v => v.id === id1) || { name_fr: id1, display_unit: "" };
+  const v2Meta = data.variables.find(v => v.id === id2) || { name_fr: id2, display_unit: "" };
+
   const labels = data.monthly_series.map(m => m.month_name);
+  const data1 = data.monthly_series.map(m => m.display_values[id1]);
+  const data2 = data.monthly_series.map(m => m.display_values[id2]);
 
-  chartInstances["cross"] = new Chart(ctx, {
+  chartInstances["sci-cross"] = new Chart(canvas.getContext("2d"), {
     type: "line",
     data: {
       labels,
       datasets: [
         {
-          label: `${meta1 ? meta1.name_fr : var1} (${meta1 ? meta1.display_unit : ''})`,
-          data: data.monthly_series.map(m => m.display_values[var1]),
+          label: `${v1Meta.name_fr} (${v1Meta.display_unit})`,
+          data: data1,
           borderColor: "#2563eb",
           backgroundColor: "rgba(37, 99, 235, 0.1)",
           yAxisID: "y1",
           tension: 0.3,
-          borderWidth: 3
+          pointRadius: 4
         },
         {
-          label: `${meta2 ? meta2.name_fr : var2} (${meta2 ? meta2.display_unit : ''})`,
-          data: data.monthly_series.map(m => m.display_values[var2]),
-          borderColor: "#f59e0b",
+          label: `${v2Meta.name_fr} (${v2Meta.display_unit})`,
+          data: data2,
+          borderColor: "#16a34a",
+          backgroundColor: "rgba(22, 163, 74, 0.1)",
           yAxisID: "y2",
           tension: 0.3,
-          borderWidth: 3
+          pointRadius: 4
         }
       ]
     },
@@ -861,12 +1050,12 @@ function renderCrossChart(data) {
         y1: {
           type: "linear",
           position: "left",
-          title: { display: true, text: meta1 ? `${meta1.name_fr} (${meta1.display_unit})` : var1 }
+          title: { display: true, text: `${v1Meta.name_fr} (${v1Meta.display_unit})` }
         },
         y2: {
           type: "linear",
           position: "right",
-          title: { display: true, text: meta2 ? `${meta2.name_fr} (${meta2.display_unit})` : var2 },
+          title: { display: true, text: `${v2Meta.name_fr} (${v2Meta.display_unit})` },
           grid: { drawOnChartArea: false }
         }
       }
@@ -874,40 +1063,36 @@ function renderCrossChart(data) {
   });
 }
 
-/* ==========================================================================
-   Detailed Scientific Table & Exports
-   ========================================================================== */
-function renderDetailedTable(data) {
-  const thead = document.getElementById("thead-detailed-series");
-  const tbody = document.getElementById("tbody-detailed-series");
+function renderSciDetailedTable(data) {
+  const thead = document.getElementById("thead-sci-detailed");
+  const tbody = document.getElementById("tbody-sci-detailed");
+  if (!thead || !tbody) return;
+
   thead.innerHTML = "";
   tbody.innerHTML = "";
 
   const activeVars = data.variables.map(v => v.id);
 
-  // Build Table Header
-  const trHead = document.createElement("tr");
-  trHead.innerHTML = `<th>Mois / Date</th><th>Obs. 3h</th><th>Statut</th>`;
+  // Build header row
+  const headerTr = document.createElement("tr");
+  headerTr.innerHTML = `<th>Mois</th><th>Obs</th>`;
   activeVars.forEach(vid => {
-    const meta = data.variables.find(v => v.id === vid);
-    trHead.innerHTML += `<th title="${meta ? meta.name_en : vid}">${meta ? meta.name_fr : vid} <small>(${meta ? meta.display_unit : ''})</small></th>`;
+    const v = data.variables.find(item => item.id === vid);
+    const th = document.createElement("th");
+    th.innerHTML = `${v ? v.name_fr : vid} <br><small style="color:#64748b;font-weight:400">${v ? v.display_unit : ''}</small>`;
+    headerTr.appendChild(th);
   });
-  thead.appendChild(trHead);
+  thead.appendChild(headerTr);
 
-  // Build Rows
+  // Build data rows
   data.monthly_series.forEach(pt => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><strong>${pt.month_name} ${pt.year}</strong></td>
-      <td>${pt.observation_count}</td>
-      <td><span class="status-badge ${pt.quality_status === 'complete' ? 'optimal' : 'warning'}">${pt.quality_status}</span></td>
-    `;
+    tr.innerHTML = `<td><strong>${pt.month_name}</strong></td><td><span class="status-badge optimal">${pt.observation_count}</span></td>`;
 
     activeVars.forEach(vid => {
       const val = pt.display_values[vid];
-      const valStr = val !== null ? val : '—';
       const td = document.createElement("td");
-      td.textContent = valStr;
+      td.textContent = val !== null ? val : '—';
       td.title = "Cliquez pour l'explication en Darija";
       td.style.cursor = "pointer";
       td.addEventListener("click", () => {
@@ -920,20 +1105,62 @@ function renderDetailedTable(data) {
   });
 }
 
-function filterTable(keyword) {
-  const rows = document.querySelectorAll("#tbody-detailed-series tr");
-  rows.forEach(r => {
-    r.style.display = r.textContent.toLowerCase().includes(keyword) ? "" : "none";
-  });
+/* ==========================================================================
+   Generic API Fetch Helper
+   ========================================================================== */
+async function fetchSmapApi({ mode, year, lat, lon, city, refresh = false }) {
+  const loader = document.getElementById("smap-loader");
+  const loaderText = document.getElementById("smap-loader-text");
+  const errorBox = document.getElementById("smap-error");
+
+  if (loader) {
+    loader.hidden = false;
+    if (loaderText) {
+      loaderText.textContent = `Interrogation de Google Earth Engine pour ${city || 'vos coordonnées'} (NASA/SMAP/SPL4SMGP/008)...`;
+    }
+  }
+  if (errorBox) errorBox.hidden = true;
+
+  let url = `/api/smap-gee/timeseries?mode=${mode}&scale=11000&refresh=${refresh}&year=${year}`;
+  if (lat && lon) {
+    url += `&latitude=${lat}&longitude=${lon}`;
+  }
+  if (city) {
+    url += `&city=${encodeURIComponent(city)}`;
+  }
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || `Erreur HTTP ${res.status}`);
+    }
+
+    return data;
+  } catch (err) {
+    console.error("API Fetch error:", err);
+    if (errorBox) {
+      errorBox.hidden = false;
+      document.getElementById("error-title").textContent = "Échec d'extraction satellite";
+      document.getElementById("error-message").textContent = err.message;
+    }
+    return null;
+  } finally {
+    if (loader) loader.hidden = true;
+  }
 }
 
-function exportTableToCSV() {
-  if (!currentSmapData) return;
-  const vars = currentSmapData.variables.map(v => v.id);
+/* ==========================================================================
+   Table Export Utilities
+   ========================================================================== */
+function exportTableToCSV(data) {
+  if (!data) return;
+  const vars = data.variables.map(v => v.id);
   const headers = ["Mois", "Annee", "Obs_Count", "Statut", ...vars];
-  
+
   let csv = headers.join(",") + "\n";
-  currentSmapData.monthly_series.forEach(pt => {
+  data.monthly_series.forEach(pt => {
     const row = [
       pt.month_name,
       pt.year,
@@ -948,18 +1175,25 @@ function exportTableToCSV() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `NASA_SMAP_L4_${currentSmapData.location.requested_latitude}_${currentSmapData.location.requested_longitude}.csv`;
+  a.download = `NASA_SMAP_L4_${data.location.requested_latitude}_${data.location.requested_longitude}.csv`;
   a.click();
 }
 
-function exportTableToJSON() {
-  if (!currentSmapData) return;
-  const blob = new Blob([JSON.stringify(currentSmapData, null, 2)], { type: "application/json" });
+function exportTableToJSON(data) {
+  if (!data) return;
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `NASA_SMAP_L4_${currentSmapData.location.requested_latitude}_${currentSmapData.location.requested_longitude}.json`;
+  a.download = `NASA_SMAP_L4_${data.location.requested_latitude}_${data.location.requested_longitude}.json`;
   a.click();
+}
+
+function destroyChart(key) {
+  if (chartInstances[key]) {
+    chartInstances[key].destroy();
+    chartInstances[key] = null;
+  }
 }
 
 /* ==========================================================================
@@ -975,8 +1209,8 @@ function initDarijaDrawer() {
     backdrop.classList.remove("active");
   };
 
-  closeBtn.addEventListener("click", closeDrawer);
-  backdrop.addEventListener("click", closeDrawer);
+  if (closeBtn) closeBtn.addEventListener("click", closeDrawer);
+  if (backdrop) backdrop.addEventListener("click", closeDrawer);
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeDrawer();
   });
@@ -990,7 +1224,7 @@ async function openDarijaDrawer(varId, value, period, locationName) {
     const valParam = (value !== null && value !== undefined) ? `&value=${value}` : "";
     const periodParam = period ? `&period=${encodeURIComponent(period)}` : "";
     const locParam = locationName ? `&location=${encodeURIComponent(locationName)}` : "";
-    
+
     const res = await fetch(`/api/smap-gee/explain?variable=${varId}${valParam}${periodParam}${locParam}`);
     const data = await res.json();
 
@@ -1022,21 +1256,20 @@ async function openDarijaDrawer(varId, value, period, locationName) {
 }
 
 /* ==========================================================================
-   Catalogue des 46 Variables
+   Catalogue des 46 Variables (Tab 3)
    ========================================================================== */
 async function loadVariablesCatalog() {
-  const container = document.getElementById("catalog-cards-container");
   const filterRow = document.getElementById("catalog-category-filters");
+  if (!filterRow) return;
 
   try {
     const res = await fetch("/api/smap-gee/variables");
     const data = await res.json();
     allVariablesCatalog = data;
 
-    // Build Category Filter Buttons
     filterRow.innerHTML = `<button type="button" class="preset-btn active" data-cat="all">Toutes (${data.total_variables})</button>`;
     filterRow.innerHTML += `<button type="button" class="preset-btn" data-cat="agri">🌾 Agricoles (${data.agricultural_count})</button>`;
-    
+
     Object.entries(data.categories).forEach(([catKey, catMeta]) => {
       filterRow.innerHTML += `<button type="button" class="preset-btn" data-cat="${catKey}">${catMeta.name_fr}</button>`;
     });
@@ -1058,6 +1291,7 @@ async function loadVariablesCatalog() {
 
 function renderCatalogGrid(catFilter) {
   const container = document.getElementById("catalog-cards-container");
+  if (!container) return;
   container.innerHTML = "";
 
   const vars = Object.values(allVariablesCatalog.variables || {});
@@ -1093,7 +1327,7 @@ function renderCatalogGrid(catFilter) {
 }
 
 /* ==========================================================================
-   Classic NASA POWER / CMR Handlers (Preserved from original tester)
+   Classic NASA POWER / CMR Handlers (Tab 2)
    ========================================================================== */
 function initClassicPower() {
   const form = document.querySelector("#query-form");
@@ -1102,7 +1336,6 @@ function initClassicPower() {
   const sourceInput = document.querySelector("#source");
   const endpointInput = document.querySelector("#endpoint");
   const endpointField = document.querySelector("#endpoint-field");
-  const productNote = document.querySelector("#product-note");
   const thresholds = document.querySelector("#thresholds");
   const callBox = document.querySelector("#call");
   const idle = document.querySelector("#idle");
