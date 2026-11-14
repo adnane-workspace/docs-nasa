@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Test NASA POWER et SMAP</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <p class="eyebrow">Banc d'essai local</p>
+      <h1>NASA POWER et SMAP</h1>
+    </div>
+    <a class="docs" href="/docs">Swagger</a>
+  </header>
+
+  <main class="layout">
+    <form id="query-form" class="panel">
+      <h2>Requête</h2>
+      <label>
+        API
+        <select id="source" name="source">
+          <option value="power">NASA POWER — climat quotidien</option>
+          <option value="SPL3SMP_E">NASA SMAP SPL3SMP_E — humidité superficielle, 9 km</option>
+          <option value="SPL4SMGP">NASA SMAP SPL4SMGP — surface et zone racinaire, 9 km</option>
+          <option value="GPM_3IMERGDF">GPM IMERG — précipitations journalières</option>
+          <option value="HLSL30">NASA HLS Landsat — végétation, 30 m</option>
+          <option value="agro">Données agronomiques — recommandations et rotations</option>
+        </select>
+      </label>
+      <p id="product-note" class="hint">Température, précipitations, humidité de l'air, vent et rayonnement. Communauté agricole AG.</p>
+      <label id="endpoint-field">
+        Endpoint
+        <select id="endpoint" name="endpoint">
+          <option value="summary">Résumé agricole — /api/climate/summary</option>
+          <option value="daily">Observations quotidiennes — /api/climate</option>
+          <option value="export">Export CSV — /api/climate/export</option>
+        </select>
+      </label>
+      <label>
+        Ville
+        <input id="city" name="city" value="Tangier, Morocco" autocomplete="off">
+      </label>
+      <div class="pair">
+        <label>
+          Latitude
+          <input id="latitude" name="latitude" inputmode="decimal" placeholder="optionnel">
+        </label>
+        <label>
+          Longitude
+          <input id="longitude" name="longitude" inputmode="decimal" placeholder="optionnel">
+        </label>
+      </div>
+      <p class="hint">Si latitude et longitude sont remplies, elles remplacent la ville.</p>
+      <div class="pair">
+        <label>
+          Début
+          <input id="start-date" name="start_date" type="date" value="2025-01-01" required>
+        </label>
+        <label>
+          Fin
+          <input id="end-date" name="end_date" type="date" value="2025-12-31" required>
+        </label>
+      </div>
+      <div id="thresholds" class="thresholds">
+        <label>Jour chaud ≥ <input id="hot" type="number" step="0.1" value="30"></label>
+        <label>Jour froid ≤ <input id="cold" type="number" step="0.1" value="5"></label>
+        <label>Jour sec &lt; <input id="dry" type="number" step="0.1" value="1"></label>
+      </div>
+      <label class="check">
+        <input id="refresh" type="checkbox">
+        Forcer un nouvel appel NASA (`refresh=true`)
+      </label>
+      <button type="submit">Appeler l'API</button>
+    </form>
+
+    <section class="panel results" aria-live="polite">
+      <h2>Appel</h2>
+      <p id="idle" class="hint">Lancez une requête. Le temps affiché est celui du navigateur, du début du fetch jusqu'à la réponse complète.</p>
+      <div id="call" class="call" hidden>
+        <div class="metrics">
+          <article>
+            <span>Statut</span>
+            <strong id="status">—</strong>
+          </article>
+          <article>
+            <span>Temps de réponse</span>
+            <strong id="elapsed">—</strong>
+          </article>
+          <article>
+            <span>Cache</span>
+            <strong id="cache">—</strong>
+          </article>
+          <article>
+            <span>Taille</span>
+            <strong id="size">—</strong>
+          </article>
+        </div>
+        <p class="url-line"><span>GET</span> <code id="request-url"></code></p>
+        <button id="copy-url" type="button" class="ghost">Copier l'URL</button>
+      </div>
+      <div id="error" class="error" hidden></div>
+      <div id="output"></div>
+      <details id="raw-block" hidden>
+        <summary>JSON brut</summary>
+        <pre id="raw"></pre>
+      </details>
+    </section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>
